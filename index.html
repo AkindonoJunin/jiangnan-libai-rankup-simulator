@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>江南/李白等級昇級シミュレーター</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        [v-cloak] { display: none; }
+        
+        /* input type="number", type="time" のスピンボタンを非表示化 */
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type="number"] { -moz-appearance: textfield; }
+        input[type="time"]::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen selection:bg-emerald-500 selection:text-slate-950">
+    <div id="app" v-cloak class="flex flex-col h-screen">
+        <header class="bg-slate-900/95 border-b border-slate-800 px-6 py-3 flex justify-between items-center shrink-0 backdrop-blur shadow-md z-20">
+            <div class="flex items-center gap-3">
+                <div class="w-3 h-3 rounded-full bg-emerald-400 animate-pulse"></div>
+                <div>
+                    <h1 class="text-lg font-bold text-slate-100 flex items-center gap-2">
+                        <span>江南/李白等級昇級シミュレーター</span>
+                    </h1>
+                    <p class="text-[11px] text-slate-400 font-mono">本アプリはシミュレーション結果を参考情報として提供するものです。実際のゲーム内挙動や結果と異なる場合があります。 </p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <div class="bg-slate-950 px-4 py-1.5 rounded-lg border border-cyan-500/40 text-right shadow-inner flex items-center gap-3">
+                    <span class="text-[10px] text-cyan-400 block font-mono uppercase font-semibold">💎 総使用アイテム</span>
+                    <span class="text-xl font-bold text-cyan-300 font-mono">{{ simulationResults.totalItems }} <span class="text-xs text-cyan-500">個</span></span>
+                </div>
+                <div class="bg-slate-950 px-4 py-1.5 rounded-lg border border-emerald-500/40 text-right shadow-inner bg-gradient-to-r from-emerald-950/20 to-slate-950 flex flex-col justify-center">
+                    <span class="text-[9px] text-emerald-400 block font-mono uppercase font-semibold">🚀 最終予想等級</span>
+                    <span class="text-sm font-bold text-emerald-300 font-mono">{{ finalGradeName }}</span>
+                </div>
+                <button @click="isLeftPanelOpen = !isLeftPanelOpen" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-700 transition flex items-center gap-1.5 shadow ml-2">
+                    <span>{{ isLeftPanelOpen ? '◀ パネルを閉じる' : '▶ パネルを開く' }}</span>
+                </button>
+            </div>
+        </header>
+
+        <div class="flex flex-1 overflow-hidden relative">
+            <aside v-show="isLeftPanelOpen" class="w-[420px] bg-slate-900/80 border-r border-slate-800 p-4 overflow-y-auto shrink-0 flex flex-col gap-5 text-xs z-10 transition-all shadow-xl">
+                
+                <section class="bg-slate-900 p-3.5 rounded-xl border border-slate-800/80 shadow-inner">
+                    <h2 class="text-xs font-semibold text-slate-300 mb-2.5 flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                        1. 開始状態の指定
+                    </h2>
+                    <div class="grid grid-cols-2 gap-1.5 mb-3">
+                        <button @click="startMode = 'new'" :class="startMode === 'new' ? 'bg-blue-600 text-white font-bold' : 'bg-slate-800 text-slate-400 hover:bg-slate-700/60'" class="py-1.5 rounded-lg transition text-center shadow-sm">
+                            新規スタート
+                        </button>
+                        <button @click="startMode = 'resume'" :class="startMode === 'resume' ? 'bg-blue-600 text-white font-bold' : 'bg-slate-800 text-slate-400 hover:bg-slate-700/60'" class="py-1.5 rounded-lg transition text-center shadow-sm">
+                            途中から再開
+                        </button>
+                    </div>
+                    <div v-if="startMode === 'resume'" class="space-y-2.5 bg-slate-950/60 p-2.5 rounded-lg border border-slate-800/60">
+                        <div>
+                            <label class="block text-slate-500 text-[10px] mb-1 font-mono">開始日時 (1日目10:00 〜 3日目22:00)</label>
+                            <div class="flex gap-1.5">
+                                <select v-model.number="resumeData.day" class="flex-1 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white font-mono text-xs focus:outline-none focus:border-blue-500">
+                                    <option value="1">1日目</option>
+                                    <option value="2">2日目</option>
+                                    <option value="3">3日目</option>
+                                </select>
+                                <input type="time" v-model="resumeData.time" class="flex-1 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white font-mono text-xs focus:outline-none focus:border-blue-500">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-slate-500 text-[10px] mb-1 font-mono">現在等級</label>
+                                <select v-model.number="resumeData.gradeIndex" class="w-full bg-slate-900 border border-slate-700 rounded px-1.5 py-1 text-white font-mono text-xs focus:outline-none focus:border-blue-500">
+                                    <option v-for="(g, idx) in gradeMaster" :key="idx" :value="idx">{{ idx }}: {{ g.name.split('/')[0] }}</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-slate-500 text-[10px] mb-1 font-mono">現在体力 (0〜30)</label>
+                                <input type="number" v-model.number="resumeData.stamina" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white font-mono text-xs focus:outline-none focus:border-blue-500">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-slate-500 text-[10px] mb-1 font-mono">現在博識</label>
+                            <input type="number" v-model.number="resumeData.exp" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white font-mono text-xs focus:outline-none focus:border-blue-500">
+                        </div>
+                    </div>
+                </section>
+
+                <section class="bg-slate-900 p-3.5 rounded-xl border border-slate-800/80 shadow-inner">
+                    <div class="flex justify-between items-center mb-2.5">
+                        <h2 class="text-xs font-semibold text-slate-300 flex items-center gap-2">
+                            <span class="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
+                            2. おやすみ期間 (オフライン)
+                        </h2>
+                        <button @click="addOfflinePeriod" class="bg-purple-600/80 hover:bg-purple-600 text-white px-2 py-0.5 rounded text-[10px] transition font-semibold">+ 追加</button>
+                    </div>
+                    <p class="text-[10px] text-slate-500 mb-2">※期間中は自然増加・回復のみ。終了時刻に一括昇級します。</p>
+                    <div class="space-y-2 max-h-36 overflow-y-auto pr-1">
+                        <div v-for="(period, idx) in offlinePeriods" :key="idx" class="flex items-center gap-2 bg-slate-950/80 p-2 rounded border border-slate-800/80">
+                            <div class="flex-1 space-y-1.5">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="text-[10px] text-slate-500 w-6">開始</span>
+                                    <select v-model.number="period.startDay" class="bg-slate-900 border border-slate-700 rounded px-1 py-0.5 text-white font-mono text-[10px] focus:outline-none focus:border-purple-500">
+                                        <option value="1">1日目</option>
+                                        <option value="2">2日目</option>
+                                        <option value="3">3日目</option>
+                                    </select>
+                                    <input type="time" v-model="period.startTime" class="bg-slate-900 border border-slate-700 rounded px-1 py-0.5 text-white font-mono text-[10px] focus:outline-none focus:border-purple-500">
+                                </div>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="text-[10px] text-slate-500 w-6">終了</span>
+                                    <select v-model.number="period.endDay" class="bg-slate-900 border border-slate-700 rounded px-1 py-0.5 text-white font-mono text-[10px] focus:outline-none focus:border-purple-500">
+                                        <option value="1">1日目</option>
+                                        <option value="2">2日目</option>
+                                        <option value="3">3日目</option>
+                                    </select>
+                                    <input type="time" v-model="period.endTime" class="bg-slate-900 border border-slate-700 rounded px-1 py-0.5 text-white font-mono text-[10px] focus:outline-none focus:border-purple-500">
+                                </div>
+                            </div>
+                            <button @click="removeOfflinePeriod(idx)" class="text-slate-500 hover:text-rose-400 p-1 font-bold text-base transition">×</button>
+                        </div>
+                        <div v-if="offlinePeriods.length === 0" class="text-center text-slate-600 py-3 text-[11px] font-mono">設定なし（24時間オンライン）</div>
+                    </div>
+                </section>
+
+                <section class="bg-slate-900 p-3.5 rounded-xl border border-slate-800/80 shadow-inner flex-1 flex flex-col min-h-[220px]">
+                    <div class="flex justify-between items-center mb-2">
+                        <h2 class="text-xs font-semibold text-slate-300 flex items-center gap-2">
+                            <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                            3. バフ率設定 (1時間ごと)
+                        </h2>
+                        <div class="flex gap-1 text-[10px] font-mono">
+                            <button @click="applyAllBuff(0)" class="bg-slate-800 hover:bg-slate-700 px-1.5 py-0.5 rounded text-slate-300">0%</button>
+                            <button @click="applyAllBuff(10)" class="bg-slate-800 hover:bg-slate-700 px-1.5 py-0.5 rounded text-slate-300">10%</button>
+                            <button @click="applyAllBuff(20)" class="bg-slate-800 hover:bg-slate-700 px-1.5 py-0.5 rounded text-slate-300">20%</button>
+                            <button @click="applyAllBuff(30)" class="bg-rose-900/60 hover:bg-rose-800 text-rose-200 border border-rose-700/50 px-1.5 py-0.5 rounded font-bold">30%</button>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-4 gap-1 overflow-y-auto max-h-56 pr-1 font-mono">
+                        <div v-for="(buff, idx) in buffs" :key="idx" class="bg-slate-950 p-1 rounded border border-slate-800/80 flex flex-col justify-between text-center" :class="idx === 0 ? 'opacity-40 bg-slate-900/80' : ''">
+                            <span class="text-[9px] text-slate-500">{{ getHourLabel(idx) }} <span v-if="idx===0" class="text-[8px] text-cyan-400 font-sans block">固定</span></span>
+                            <select v-model.number="buffs[idx]" :disabled="idx === 0" class="bg-slate-900 border border-slate-700 rounded text-rose-400 font-bold mt-0.5 py-0.5 text-center text-[11px] focus:outline-none focus:border-rose-500 disabled:cursor-not-allowed disabled:text-slate-500 disabled:border-slate-800">
+                                <option :value="0">0%</option>
+                                <option :value="10">10%</option>
+                                <option :value="20">20%</option>
+                                <option :value="30">30%</option>
+                            </select>
+                        </div>
+                    </div>
+                </section>
+            </aside>
+
+            <main class="flex-1 bg-slate-950 flex flex-col overflow-hidden relative">
+                <div class="flex-1 overflow-y-auto p-6">
+                    <div class="border border-slate-800 rounded-xl overflow-hidden shadow-2xl bg-slate-900/30">
+                        <table class="w-full text-left text-xs border-collapse font-mono">
+                            <thead>
+                                <tr class="border-b border-slate-800 text-slate-400 bg-slate-900/90 sticky top-0 text-[11px] uppercase backdrop-blur z-10 shadow">
+                                    <th class="py-3 px-3 w-10">Idx</th>
+                                    <th class="py-3 px-3 font-sans min-w-[140px]">等級名</th>
+                                    <th class="py-3 px-2 text-right">基本速度</th>
+                                    <th class="py-3 px-3 text-right">次の必要量</th>
+                                    <th class="py-3 px-3 font-semibold text-emerald-400 bg-emerald-950/30">🚀 到達予想時刻</th>
+                                    <th class="py-3 px-3 text-slate-400">所要時間</th>
+                                    <th class="py-3 px-3 font-sans text-cyan-300 bg-slate-800/80 min-w-[150px]">アイテム使用</th>
+                                    <th class="py-3 px-3 font-sans text-cyan-300 bg-slate-800/80 min-w-[200px]">昇級モード / 時刻指定保留</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-800/60 bg-slate-950/40">
+                                <tr v-for="(row, idx) in simulationResults.table" :key="idx" :class="row.reached ? 'hover:bg-slate-900/60 text-slate-200 transition' : 'text-slate-600 opacity-50 bg-slate-950/80'">
+                                    <td class="py-2.5 px-3 text-slate-500 font-bold">{{ idx }}</td>
+                                    <td class="py-2.5 px-3 font-sans font-bold text-slate-100">{{ row.name }}</td>
+                                    <td class="py-2.5 px-2 text-right text-slate-400">{{ row.speed.toLocaleString() }}</td>
+                                    <td class="py-2.5 px-3 text-right text-slate-400">{{ row.req ? row.req.toLocaleString() : '-' }}</td>
+                                    <td class="py-2.5 px-3 font-bold bg-emerald-950/10 text-sm" :class="row.reached ? 'text-emerald-400' : 'text-slate-600'">
+                                        {{ row.reachedTimeStr }}
+                                    </td>
+                                    <td class="py-2.5 px-3 text-slate-400 text-[11px]">{{ row.durationStr }}</td>
+                                    
+                                    <td class="py-2 px-3 bg-slate-900/40">
+                                        <div class="flex items-center gap-1.5">
+                                            <button @click="customSettings[idx].itemCount = Math.max(0, (customSettings[idx].itemCount || 0) - 1)" class="w-6 h-6 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded flex items-center justify-center font-bold focus:outline-none border border-slate-700 leading-none shadow-sm transition">-</button>
+                                            
+                                            <input type="number" min="0" @wheel.prevent v-model.number="customSettings[idx].itemCount" class="w-12 bg-slate-950 border border-slate-700 rounded px-1 py-1 text-white font-mono font-bold text-center text-xs focus:outline-none focus:border-emerald-500 shadow-inner">
+                                            
+                                            <button @click="customSettings[idx].itemCount = (customSettings[idx].itemCount || 0) + 1" class="w-6 h-6 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded flex items-center justify-center font-bold focus:outline-none border border-slate-700 leading-none shadow-sm transition">+</button>
+                                            
+                                            <div class="flex flex-col ml-1 justify-center">
+                                                <span class="text-slate-400 text-[10px] leading-none mb-0.5">個</span>
+                                                <span v-if="customSettings[idx].itemCount > 0" class="text-[9px] text-cyan-400 font-mono leading-none">(+{{ customSettings[idx].itemCount * 3 }}体力)</span>
+                                            </div>
+                                        </div>
+                                    </td>
+
+                                    <td class="py-2 px-3 bg-slate-900/40">
+                                        <div class="flex flex-col gap-1.5">
+                                            <select v-model="customSettings[idx].mode" class="bg-slate-950 border border-slate-700 rounded px-2 py-1 text-white text-[11px] focus:outline-none focus:border-emerald-500 shadow-inner font-sans w-full">
+                                                <option value="auto">自動昇級 (即時)</option>
+                                                <option value="manual">時刻指定まで保留</option>
+                                            </select>
+                                            <div v-if="customSettings[idx].mode === 'manual'" class="flex items-center gap-1">
+                                                <select v-model.number="customSettings[idx].targetDay" class="flex-1 bg-slate-950 border border-slate-700 rounded px-1 py-0.5 text-white font-mono text-[10px] focus:outline-none focus:border-emerald-500 shadow-inner">
+                                                    <option value="1">1日目</option>
+                                                    <option value="2">2日目</option>
+                                                    <option value="3">3日目</option>
+                                                </select>
+                                                <input type="time" v-model="customSettings[idx].targetTime" class="flex-1 bg-slate-950 border border-slate-700 rounded px-1 py-0.5 text-white font-mono text-[10px] focus:outline-none focus:border-emerald-500 shadow-inner">
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, reactive, computed, watch, onMounted } = Vue;
+
+        createApp({
+            setup() {
+                const TOTAL_MINUTES = 3600; // 60時間 = 3600分
+
+                const gradeMaster = [
+                    { name: "良民三等/練気期一段", speed: 100, req: 41000 },
+                    { name: "良民二等/練気期二段", speed: 200, req: 288200 },
+                    { name: "良民一等/練気期三段", speed: 300, req: 497700 },
+                    { name: "文人三等/築基期一段", speed: 400, req: 747600 },
+                    { name: "文人二等/築基期二段", speed: 500, req: 1058000 },
+                    { name: "文人一等/築基期三段", speed: 600, req: 1414000 },
+                    { name: "才女三等/結丹期一段", speed: 700, req: 1874000 },
+                    { name: "才女二等/結丹期二段", speed: 800, req: 2364000 },
+                    { name: "才女一等/結丹期三段", speed: 900, req: 2980000 },
+                    { name: "学士六等/元嬰期一段", speed: 1000, req: 3667000 },
+                    { name: "学士五等/元嬰期二段", speed: 1100, req: 4466000 },
+                    { name: "学士四等/元嬰期三段", speed: 1200, req: 5341000 },
+                    { name: "学士三等/元嬰期四段", speed: 1300, req: 6346000 },
+                    { name: "学士二等/元嬰期五段", speed: 1400, req: 7491000 },
+                    { name: "学士一等/元嬰期六段", speed: 1500, req: 8730000 },
+                    { name: "翰林六等/化神期一段", speed: 1600, req: 10120000 },
+                    { name: "翰林五等/化神期二段", speed: 1700, req: 11680000 },
+                    { name: "翰林四等/化神期三段", speed: 1800, req: 13350000 },
+                    { name: "翰林三等/化神期四段", speed: 1900, req: 15200000 },
+                    { name: "翰林二等/化神期五段", speed: 2000, req: 17180000 },
+                    { name: "翰林一等/化神期六段", speed: 2100, req: 19340000 },
+                    { name: "博雅六等/錬虚期一段", speed: 2200, req: 16190000 },
+                    { name: "博雅五等/錬虚期二段", speed: 2300, req: 18300000 },
+                    { name: "博雅四等/錬虚期三段", speed: 2400, req: 26970000 },
+                    { name: "博雅三等/錬虚期四段", speed: 2500, req: 63300000 },
+                    { name: "博雅二等/錬虚期五段", speed: 2600, req: 68430000 },
+                    { name: "博雅一等/錬虚期六段", speed: 2700, req: 73540000 },
+                    { name: "名仕九等/合体期一段", speed: 2800, req: 79070000 },
+                    { name: "名仕八等/合体期二段", speed: 2900, req: 84680000 }
+                ];
+
+                const isLeftPanelOpen = ref(true);
+                const startMode = ref('new');
+
+                // 絶対日時を廃止し、日数と時刻で管理
+                const resumeData = reactive({
+                    day: 1,
+                    time: "10:00",
+                    gradeIndex: 0,
+                    exp: 0,
+                    stamina: 30
+                });
+
+                const offlinePeriods = ref([]);
+
+                const initBuffs = () => {
+                    const arr = new Array(60).fill(30);
+                    arr[0] = 0;
+                    return arr;
+                };
+                const buffs = ref(initBuffs());
+
+                const customSettings = ref(gradeMaster.map(() => ({
+                    itemCount: 0,
+                    mode: 'auto',
+                    targetDay: 1,
+                    targetTime: "12:00"
+                })));
+
+                const simulationResults = reactive({
+                    finalGrade: 0,
+                    totalItems: 0,
+                    table: []
+                });
+
+                // --- 時間変換ユーティリティ ---
+                // 開始10時間をゼロ基準(0m)としてパースする関数
+                const parseTimeToM = (day, timeStr) => {
+                    if (!timeStr) return 0;
+                    const parts = timeStr.split(':');
+                    const h = parseInt(parts[0], 10) || 0;
+                    const m = parseInt(parts[1], 10) || 0;
+                    // (day-1)*24h + 現在時刻 - 10h(初日10時)
+                    return Math.max(0, (day - 1) * 1440 + h * 60 + m - 600);
+                };
+
+                // 逆に分数から表示用文字列を生成する関数
+                const formatTime = (minutesFromStart) => {
+                    const totalMins = minutesFromStart + 600; // 10時間ゲタを履かせる
+                    const day = Math.floor(totalMins / 1440) + 1;
+                    const h = Math.floor((totalMins % 1440) / 60);
+                    const m = totalMins % 60;
+                    return `${day}日目 ${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+                };
+
+                const getHourLabel = (idx) => {
+                    const totalHours = 10 + idx;
+                    return `${Math.floor(totalHours / 24) + 1}日目 ${String(totalHours % 24).padStart(2, '0')}:00`;
+                };
+
+                const applyAllBuff = (val) => {
+                    for (let i = 1; i < 60; i++) buffs.value[i] = val;
+                    buffs.value[0] = 0;
+                };
+
+                const addOfflinePeriod = () => offlinePeriods.value.push({ 
+                    startDay: 1, startTime: "23:00", endDay: 2, endTime: "07:00" 
+                });
+                const removeOfflinePeriod = (idx) => offlinePeriods.value.splice(idx, 1);
+
+                // --- ★ 1分ループ 最適化エンジン ★ ---
+                let debounceTimer = null;
+                const triggerSimulation = () => {
+                    if (debounceTimer) clearTimeout(debounceTimer);
+                    debounceTimer = setTimeout(() => { runSimulation(); }, 30);
+                };
+
+                const runSimulation = () => {
+                    buffs.value[0] = 0; // 初回0%ロック
+
+                    let startM = startMode.value === 'resume' ? parseTimeToM(resumeData.day, resumeData.time) : 0;
+                    let curGrade = startMode.value === 'resume' ? resumeData.gradeIndex : 0;
+                    let curExp = startMode.value === 'resume' ? resumeData.exp : 0;
+                    let curStamina = startMode.value === 'resume' ? resumeData.stamina : 30;
+                    
+                    let totalItemsUsed = 0;
+                    const reachedTimes = new Array(gradeMaster.length).fill(null);
+                    reachedTimes[curGrade] = startM;
+
+                    // ターゲット時間を一括パースしてキャッシュ
+                    const parsedTargetMs = customSettings.value.map(setting => 
+                        setting.mode === 'manual' ? parseTimeToM(setting.targetDay, setting.targetTime) : 0
+                    );
+
+                    // 初期等級のアイテムを即時消費
+                    const initItems = customSettings.value[curGrade].itemCount || 0;
+                    if (initItems > 0) {
+                        curStamina += initItems * 3;
+                        totalItemsUsed += initItems;
+                    }
+
+                    const parsedOffline = offlinePeriods.value.map(p => ({
+                        start: parseTimeToM(p.startDay, p.startTime),
+                        end: parseTimeToM(p.endDay, p.endTime)
+                    }));
+
+                    let hIdx = Math.floor(startM / 60);
+                    let currentBuff = (hIdx < 60) ? (buffs.value[hIdx] / 100) : 0;
+
+                    for (let m = startM; m < TOTAL_MINUTES; m++) {
+                        
+                        // バフ更新 (60分に1回)
+                        if (m % 60 === 0) {
+                            hIdx = Math.floor(m / 60);
+                            currentBuff = (hIdx < 60) ? (buffs.value[hIdx] / 100) : 0;
+                        }
+                        
+                        let speed = gradeMaster[curGrade].speed;
+
+                        // 博識自然増加
+                        if (m % 2 === 0) {
+                            curExp += speed * (1 + currentBuff) * 8;
+                        } else {
+                            curExp += speed * (1 + currentBuff) * 7;
+                        }
+
+                        // 体力回復
+                        if (m % 15 === 0 && curStamina < 30) {
+                            curStamina++;
+                        }
+
+                        // オフライン判定
+                        let isOffline = parsedOffline.some(p => m >= p.start && m < p.end);
+                        if (isOffline) {
+                            continue;
+                        }
+
+                        // 昇級・体力消費ループ（飛び級・連鎖）
+                        let actionOccurred = true;
+                        while (actionOccurred && curGrade < gradeMaster.length - 1) {
+                            actionOccurred = false;
+                            
+                            const isManualHold = (customSettings.value[curGrade].mode === 'manual' && m < parsedTargetMs[curGrade]);
+                            if (isManualHold) break; 
+
+                            if (curExp >= gradeMaster[curGrade].req) {
+                                curExp -= gradeMaster[curGrade].req;
+                                curGrade++;
+                                reachedTimes[curGrade] = m;
+                                
+                                const items = customSettings.value[curGrade].itemCount || 0;
+                                curStamina += items * 3;
+                                totalItemsUsed += items;
+                                
+                                speed = gradeMaster[curGrade].speed;
+                                actionOccurred = true;
+                                continue; 
+                            }
+
+                            if (curStamina > 0 && curExp < gradeMaster[curGrade].req) {
+                                let neededExp = gradeMaster[curGrade].req - curExp;
+                                let neededStamina = Math.ceil(neededExp / (speed * 40));
+                                let useAmount = Math.min(neededStamina, curStamina);
+                                
+                                if (useAmount > 0) {
+                                    curStamina -= useAmount;
+                                    curExp += useAmount * speed * 40;
+                                    actionOccurred = true;
+                                }
+                            }
+                        }
+                    }
+
+                    simulationResults.finalGrade = curGrade;
+                    simulationResults.totalItems = totalItemsUsed;
+
+                    const tableData = gradeMaster.map((g, idx) => {
+                        const rTimeM = reachedTimes[idx];
+                        let durStr = '-';
+                        if (rTimeM !== null && idx > 0 && reachedTimes[idx - 1] !== null) {
+                            const diffM = rTimeM - reachedTimes[idx - 1];
+                            durStr = `${Math.floor(diffM / 60)}時間${diffM % 60}分`;
+                        } else if (idx === 0) durStr = 'スタート';
+
+                        return {
+                            name: g.name, speed: g.speed, req: g.req,
+                            reached: rTimeM !== null,
+                            reachedTimeStr: rTimeM !== null ? formatTime(rTimeM) : '到達不可',
+                            durationStr: durStr
+                        };
+                    });
+
+                    simulationResults.table = tableData;
+                };
+
+                watch([startMode, resumeData, offlinePeriods, buffs, customSettings], () => { triggerSimulation(); }, { deep: true });
+                onMounted(() => runSimulation());
+
+                const finalGradeName = computed(() => gradeMaster[simulationResults.finalGrade]?.name || '');
+
+                return {
+                    isLeftPanelOpen, startMode, resumeData, offlinePeriods, buffs, customSettings,
+                    gradeMaster, simulationResults, finalGradeName,
+                    addOfflinePeriod, removeOfflinePeriod, applyAllBuff, getHourLabel
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
