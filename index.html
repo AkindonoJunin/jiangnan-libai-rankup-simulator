@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>等級昇級シミュレーター（1分刻み・張り付き型・UI改善版）</title>
+    <title>江南/李白等級昇級シミュレーター</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -25,6 +25,13 @@
             cursor: pointer;
         }
     </style>
+    <script type="text/javascript">
+        (function(c,l,a,r,i,t,y){
+            c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+            t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+            y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+        })(window, document, "clarity", "script", "xjnlzh41go");
+    </script>
 </head>
 <body class="bg-slate-950 text-slate-100 font-sans min-h-screen selection:bg-emerald-500 selection:text-slate-950">
     <div id="app" v-cloak class="flex flex-col h-screen">
@@ -33,10 +40,9 @@
                 <div class="w-3 h-3 rounded-full bg-emerald-400 animate-pulse"></div>
                 <div>
                     <h1 class="text-lg font-bold text-slate-100 flex items-center gap-2">
-                        <span>等級昇級シミュレーター</span>
-                        <span class="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded font-mono">Relative Time Engine</span>
+                        <span>江南/李白等級昇級シミュレーター</span>
                     </h1>
-                    <p class="text-[11px] text-slate-400 font-mono">カレンダー廃止(日数+時刻UI) | 1分ループ | 張り付き型 | 誤操作防止 | 初回3%固定</p>
+                    <p class="text-[11px] text-slate-400 font-mono">本アプリはシミュレーション結果を参考情報として提供するものです。実際のゲーム内挙動や結果と異なる場合があります。 </p>
                 </div>
             </div>
             
@@ -146,7 +152,7 @@
                             3. バフ率設定 (1時間ごと)
                         </h2>
                         <div class="flex gap-1 text-[10px] font-mono">
-                            <button @click="applyAllBuff(3)" class="bg-slate-800 hover:bg-slate-700 px-1.5 py-0.5 rounded text-slate-300">3%</button>
+                            <button @click="applyAllBuff(0)" class="bg-slate-800 hover:bg-slate-700 px-1.5 py-0.5 rounded text-slate-300">0%</button>
                             <button @click="applyAllBuff(10)" class="bg-slate-800 hover:bg-slate-700 px-1.5 py-0.5 rounded text-slate-300">10%</button>
                             <button @click="applyAllBuff(20)" class="bg-slate-800 hover:bg-slate-700 px-1.5 py-0.5 rounded text-slate-300">20%</button>
                             <button @click="applyAllBuff(30)" class="bg-rose-900/60 hover:bg-rose-800 text-rose-200 border border-rose-700/50 px-1.5 py-0.5 rounded font-bold">30%</button>
@@ -156,7 +162,7 @@
                         <div v-for="(buff, idx) in buffs" :key="idx" class="bg-slate-950 p-1 rounded border border-slate-800/80 flex flex-col justify-between text-center" :class="idx === 0 ? 'opacity-40 bg-slate-900/80' : ''">
                             <span class="text-[9px] text-slate-500">{{ getHourLabel(idx) }} <span v-if="idx===0" class="text-[8px] text-cyan-400 font-sans block">固定</span></span>
                             <select v-model.number="buffs[idx]" :disabled="idx === 0" class="bg-slate-900 border border-slate-700 rounded text-rose-400 font-bold mt-0.5 py-0.5 text-center text-[11px] focus:outline-none focus:border-rose-500 disabled:cursor-not-allowed disabled:text-slate-500 disabled:border-slate-800">
-                                <option :value="3">3%</option>
+                                <option :value="0">0%</option>
                                 <option :value="10">10%</option>
                                 <option :value="20">20%</option>
                                 <option :value="30">30%</option>
@@ -178,7 +184,7 @@
                                     <th class="py-3 px-3 text-right">次の必要量</th>
                                     <th class="py-3 px-3 font-semibold text-emerald-400 bg-emerald-950/30">🚀 到達予想時刻</th>
                                     <th class="py-3 px-3 text-slate-400">所要時間</th>
-                                    <th class="py-3 px-3 font-sans text-cyan-300 bg-slate-800/80 min-w-[150px]">昇級瞬間 アイテム使用</th>
+                                    <th class="py-3 px-3 font-sans text-cyan-300 bg-slate-800/80 min-w-[150px]">アイテム使用</th>
                                     <th class="py-3 px-3 font-sans text-cyan-300 bg-slate-800/80 min-w-[200px]">昇級モード / 時刻指定保留</th>
                                 </tr>
                             </thead>
@@ -203,7 +209,7 @@
                                             
                                             <div class="flex flex-col ml-1 justify-center">
                                                 <span class="text-slate-400 text-[10px] leading-none mb-0.5">個</span>
-                                                <span v-if="customSettings[idx].itemCount > 0" class="text-[9px] text-cyan-400 font-mono leading-none">(+{{ customSettings[idx].itemCount * 3 }}体)</span>
+                                                <span v-if="customSettings[idx].itemCount > 0" class="text-[9px] text-cyan-400 font-mono leading-none">(+{{ customSettings[idx].itemCount * 3 }}体力)</span>
                                             </div>
                                         </div>
                                     </td>
@@ -238,7 +244,6 @@
 
         createApp({
             setup() {
-                const EVENT_START_TIME = new Date("2026-07-01T10:00:00").getTime();
                 const TOTAL_MINUTES = 3600; // 60時間 = 3600分
 
                 const gradeMaster = [
@@ -276,6 +281,7 @@
                 const isLeftPanelOpen = ref(true);
                 const startMode = ref('new');
 
+                // 絶対日時を廃止し、日数と時刻で管理
                 const resumeData = reactive({
                     day: 1,
                     time: "10:00",
@@ -288,7 +294,7 @@
 
                 const initBuffs = () => {
                     const arr = new Array(60).fill(30);
-                    arr[0] = 3; // 最初の1時間は3%固定
+                    arr[0] = 0;
                     return arr;
                 };
                 const buffs = ref(initBuffs());
@@ -307,16 +313,19 @@
                 });
 
                 // --- 時間変換ユーティリティ ---
+                // 開始10時間をゼロ基準(0m)としてパースする関数
                 const parseTimeToM = (day, timeStr) => {
                     if (!timeStr) return 0;
                     const parts = timeStr.split(':');
                     const h = parseInt(parts[0], 10) || 0;
                     const m = parseInt(parts[1], 10) || 0;
+                    // (day-1)*24h + 現在時刻 - 10h(初日10時)
                     return Math.max(0, (day - 1) * 1440 + h * 60 + m - 600);
                 };
 
+                // 逆に分数から表示用文字列を生成する関数
                 const formatTime = (minutesFromStart) => {
-                    const totalMins = minutesFromStart + 600;
+                    const totalMins = minutesFromStart + 600; // 10時間ゲタを履かせる
                     const day = Math.floor(totalMins / 1440) + 1;
                     const h = Math.floor((totalMins % 1440) / 60);
                     const m = totalMins % 60;
@@ -330,7 +339,7 @@
 
                 const applyAllBuff = (val) => {
                     for (let i = 1; i < 60; i++) buffs.value[i] = val;
-                    buffs.value[0] = 3; // 3%固定
+                    buffs.value[0] = 0;
                 };
 
                 const addOfflinePeriod = () => offlinePeriods.value.push({ 
@@ -346,7 +355,7 @@
                 };
 
                 const runSimulation = () => {
-                    buffs.value[0] = 3; // 初回3%ロック
+                    buffs.value[0] = 0; // 初回0%ロック
 
                     let startM = startMode.value === 'resume' ? parseTimeToM(resumeData.day, resumeData.time) : 0;
                     let curGrade = startMode.value === 'resume' ? resumeData.gradeIndex : 0;
@@ -357,10 +366,12 @@
                     const reachedTimes = new Array(gradeMaster.length).fill(null);
                     reachedTimes[curGrade] = startM;
 
+                    // ターゲット時間を一括パースしてキャッシュ
                     const parsedTargetMs = customSettings.value.map(setting => 
                         setting.mode === 'manual' ? parseTimeToM(setting.targetDay, setting.targetTime) : 0
                     );
 
+                    // 初期等級のアイテムを即時消費
                     const initItems = customSettings.value[curGrade].itemCount || 0;
                     if (initItems > 0) {
                         curStamina += initItems * 3;
@@ -377,6 +388,7 @@
 
                     for (let m = startM; m < TOTAL_MINUTES; m++) {
                         
+                        // バフ更新 (60分に1回)
                         if (m % 60 === 0) {
                             hIdx = Math.floor(m / 60);
                             currentBuff = (hIdx < 60) ? (buffs.value[hIdx] / 100) : 0;
@@ -384,21 +396,25 @@
                         
                         let speed = gradeMaster[curGrade].speed;
 
+                        // 博識自然増加
                         if (m % 2 === 0) {
                             curExp += speed * (1 + currentBuff) * 8;
                         } else {
                             curExp += speed * (1 + currentBuff) * 7;
                         }
 
+                        // 体力回復
                         if (m % 15 === 0 && curStamina < 30) {
                             curStamina++;
                         }
 
+                        // オフライン判定
                         let isOffline = parsedOffline.some(p => m >= p.start && m < p.end);
                         if (isOffline) {
                             continue;
                         }
 
+                        // 昇級・体力消費ループ（飛び級・連鎖）
                         let actionOccurred = true;
                         while (actionOccurred && curGrade < gradeMaster.length - 1) {
                             actionOccurred = false;
