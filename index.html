@@ -152,7 +152,7 @@
                             3. バフ率設定 (1時間ごと)
                         </h2>
                         <div class="flex gap-1 text-[10px] font-mono">
-                            <button @click="applyAllBuff(0)" class="bg-slate-800 hover:bg-slate-700 px-1.5 py-0.5 rounded text-slate-300">0%</button>
+                            <button @click="applyAllBuff(3)" class="bg-slate-800 hover:bg-slate-700 px-1.5 py-0.5 rounded text-slate-300">3%</button>
                             <button @click="applyAllBuff(10)" class="bg-slate-800 hover:bg-slate-700 px-1.5 py-0.5 rounded text-slate-300">10%</button>
                             <button @click="applyAllBuff(20)" class="bg-slate-800 hover:bg-slate-700 px-1.5 py-0.5 rounded text-slate-300">20%</button>
                             <button @click="applyAllBuff(30)" class="bg-rose-900/60 hover:bg-rose-800 text-rose-200 border border-rose-700/50 px-1.5 py-0.5 rounded font-bold">30%</button>
@@ -162,7 +162,7 @@
                         <div v-for="(buff, idx) in buffs" :key="idx" class="bg-slate-950 p-1 rounded border border-slate-800/80 flex flex-col justify-between text-center" :class="idx === 0 ? 'opacity-40 bg-slate-900/80' : ''">
                             <span class="text-[9px] text-slate-500">{{ getHourLabel(idx) }} <span v-if="idx===0" class="text-[8px] text-cyan-400 font-sans block">固定</span></span>
                             <select v-model.number="buffs[idx]" :disabled="idx === 0" class="bg-slate-900 border border-slate-700 rounded text-rose-400 font-bold mt-0.5 py-0.5 text-center text-[11px] focus:outline-none focus:border-rose-500 disabled:cursor-not-allowed disabled:text-slate-500 disabled:border-slate-800">
-                                <option :value="0">0%</option>
+                                <option :value="3">3%</option>
                                 <option :value="10">10%</option>
                                 <option :value="20">20%</option>
                                 <option :value="30">30%</option>
@@ -294,7 +294,7 @@
 
                 const initBuffs = () => {
                     const arr = new Array(60).fill(30);
-                    arr[0] = 0;
+                    arr[0] = 3;
                     return arr;
                 };
                 const buffs = ref(initBuffs());
@@ -339,7 +339,7 @@
 
                 const applyAllBuff = (val) => {
                     for (let i = 1; i < 60; i++) buffs.value[i] = val;
-                    buffs.value[0] = 0;
+                    buffs.value[0] = 3;
                 };
 
                 const addOfflinePeriod = () => offlinePeriods.value.push({ 
@@ -355,7 +355,7 @@
                 };
 
                 const runSimulation = () => {
-                    buffs.value[0] = 0; // 初回0%ロック
+                    buffs.value[0] = 3; // 初回3%ロック
 
                     let startM = startMode.value === 'resume' ? parseTimeToM(resumeData.day, resumeData.time) : 0;
                     let curGrade = startMode.value === 'resume' ? resumeData.gradeIndex : 0;
