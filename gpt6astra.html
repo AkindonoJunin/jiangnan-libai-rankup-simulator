@@ -340,7 +340,6 @@
             scroll-margin-top: 100px;
         }
 
-        /* 4列から2列に変更 */
         .metrics {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -382,14 +381,14 @@
 
         .summary-arrival {
             margin-top: 8px;
-            color: var(--cyan);
-            font-size: 15px;
+            color: var(--green);
+            font-size: 16px;
             font-weight: 700;
+            font-variant-numeric: tabular-nums;
         }
 
         .error-panel,
-        .warning-panel,
-        .goal-panel {
+        .warning-panel {
             margin-bottom: 16px;
             padding: 16px;
             border: 1px solid var(--border);
@@ -407,19 +406,6 @@
             border-color: #9a7837;
             background: #302718;
             color: #fde4af;
-        }
-
-        .goal-panel {
-            border-color: #34795f;
-            background: #102b28;
-        }
-
-        .goal-count {
-            margin: 8px 0;
-            color: var(--green);
-            font-size: 30px;
-            font-weight: 700;
-            font-variant-numeric: tabular-nums;
         }
 
         .error-panel ul {
@@ -731,7 +717,7 @@
             }
 
             .summary-arrival {
-                font-size: 13px;
+                font-size: 14px;
             }
 
             .grade-table tbody .item-cell,
@@ -1124,31 +1110,7 @@
                 </div>
 
                 <section
-                    v-if="reverseResult && reverseResult.possible"
-                    class="goal-panel"
-                    aria-label="必要アイテム数"
-                >
-                    <h2>必要アイテム数</h2>
-
-                    <div class="goal-count">
-                        {{ formatNumber(reverseResult.requiredItems) }}個
-                    </div>
-
-                    <div>
-                        目標：{{ grades[reverseResult.targetGrade].name }}
-                    </div>
-
-                    <div>
-                        期限：{{ formatTime(reverseResult.deadline) }}
-                    </div>
-
-                    <div class="summary-arrival">
-                        目標到達：{{ goalArrivalLabel }}
-                    </div>
-                </section>
-
-                <section
-                    v-else-if="reverseResult"
+                    v-if="reverseResult && !reverseResult.possible"
                     class="warning-panel"
                     role="status"
                 >
@@ -1156,10 +1118,12 @@
                     <p class="hint">{{ reverseResult.message }}</p>
                 </section>
 
-                <!-- 2つのカードに集約 -->
+                <!-- 通常予測・逆算で共通の結果表示カード（2列） -->
                 <section class="metrics" aria-label="計算結果の概要">
                     <div class="metric">
-                        <div class="metric-label">到達階級・その到達日時</div>
+                        <div class="metric-label">
+                            {{ config.calculationMode === 'reverse' ? '到達階級' : '到達階級' }}
+                        </div>
 
                         <div class="metric-value compact">
                             {{ result ? grades[result.finalGrade].name : '—' }}
@@ -1181,9 +1145,9 @@
                     <div class="metric">
                         <div class="metric-label">
                             {{
-                                reverseResult && !reverseResult.possible
-                                    ? '参考計算のアイテム数'
-                                    : '実際に使用するアイテム'
+                                config.calculationMode === 'reverse'
+                                    ? '必要アイテム数'
+                                    : (reverseResult && !reverseResult.possible ? '参考計算のアイテム数' : '実際に使用するアイテム')
                             }}
                         </div>
 
@@ -1199,8 +1163,11 @@
                             <template v-if="result && result.mode === 'forward'">
                                 設定合計：{{ formatNumber(result.plannedItems) }}個 ／ 未使用：{{ formatNumber(result.unusedItems) }}個
                             </template>
-                            <template v-else-if="result">
-                                1個につき体力＋3
+                            <template v-else-if="result && result.mode === 'reverse'">
+                                <span v-if="reverseResult && reverseResult.possible">
+                                    {{ reverseResult.requiredItems === 0 ? '追加アイテム不要' : '即時補充での必要数' }}
+                                </span>
+                                <span v-else>到達不可</span>
                             </template>
                             <template v-else>—</template>
                         </div>
@@ -2721,6 +2688,7 @@
                         return "計算完了";
                     });
 
+                    // 最後の階級に到達した日時を表示するラベル
                     const finalArrivalLabel = computed(() => {
                         const current = result.value;
 
@@ -2732,11 +2700,11 @@
                             current.startMode === "resume" &&
                             current.finalGrade === current.startGrade
                         ) {
-                            return "到達日時不明（再開時到達済）";
+                            return "到達日時：再開時点で到達済";
                         }
 
                         return (
-                            "到達：" +
+                            "到達日時：" +
                             formatTime(current.finalReachedAt)
                         );
                     });
@@ -2764,27 +2732,6 @@
                             formatDuration(
                                 current.finalReachedAt - current.startTime
                             )
-                        );
-                    });
-
-                    const goalArrivalLabel = computed(() => {
-                        const current = result.value;
-                        const reverse = reverseResult.value;
-
-                        if (!current || !reverse || !reverse.possible) {
-                            return "—";
-                        }
-
-                        if (reverse.targetGrade <= current.startGrade) {
-                            if (current.startMode === "resume") {
-                                return "再開時点で到達済み";
-                            }
-
-                            return formatTime(current.startTime);
-                        }
-
-                        return formatTime(
-                            current.reachedTimes[reverse.targetGrade]
                         );
                     });
 
@@ -3019,7 +2966,6 @@
                         displayRows,
                         finalArrivalLabel,
                         finalArrivalDetail,
-                        goalArrivalLabel,
                         grades: GRADE_MASTER,
                         lastGradeIndex: LAST_GRADE_INDEX,
                         buffOptions: BUFF_OPTIONS,
