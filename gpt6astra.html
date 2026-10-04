@@ -790,7 +790,7 @@
             <div>
                 <h1>江南/李白等級昇級シミュレーター</h1>
                 <p class="header-note">
-                    アイテム1個＝体力＋3／使い切れなかった分は次の階級へ引継ぎ
+                    Made by Akindonojunin
                 </p>
             </div>
 
@@ -878,19 +878,6 @@
                             ></date-time-field>
                         </fieldset>
 
-                        <p class="hint">
-                            逆算では所持体力を優先して消費し、不足したら
-                            アイテムで体力を補充して操作を続けます。
-                            アイテムは体力27未満のときだけ、
-                            使用後も30未満となる個数に分けて使用します。
-                        </p>
-
-                        <p class="hint">
-                            手動の階級別アイテム数・保留設定は適用しません。
-                            オフライン期間とバフは適用します。
-                            使用を後の時刻に回す全体最適化ではなく、
-                            この即時補充方針での最少個数を求めます。
-                        </p>
                     </div>
                 </section>
 
@@ -1254,10 +1241,6 @@
                         ／階級ごとの実際の使用数は下の表に表示しています。
                     </p>
 
-                    <p class="hint">
-                        体力を優先消費し、不足したら条件内でアイテムを分割使用します。
-                        使用時刻を自由に調整した場合の全体最小値を保証するものではありません。
-                    </p>
                 </section>
 
                 <section
@@ -1316,74 +1299,13 @@
                         </div>
 
                         <div class="metric-detail">
-                            <template v-if="result && result.mode === 'forward'">
-                                設定合計：{{ formatNumber(result.plannedItems) }}個
-                                ／未使用：{{ formatNumber(result.unusedItems) }}個
-                            </template>
-
-                            <template v-else-if="result">
-                                1個につき体力＋3
-                            </template>
-
+                            
                             <template v-else>—</template>
                         </div>
 
-                        <div
-                            v-if="result && result.mode === 'forward'"
-                            class="metric-detail"
-                        >
-                            到達済み階級での使用待ち：
-                            {{ formatNumber(result.pendingItems) }}個
-                            ／未到達階級の設定分：
-                            {{ formatNumber(result.unreachedPlannedItems) }}個
-                        </div>
-
-                        <div class="metric-detail">
-                            体力27未満・使用後30未満の場合のみ使用
-                        </div>
                     </div>
 
-                    <div class="metric">
-                        <div class="metric-label">計算終了時の残り博識</div>
-
-                        <div class="metric-value">
-                            {{ result ? formatNumber(result.finalExp) : '—' }}
-                        </div>
-
-                        <div class="metric-detail">
-                            <template v-if="result && result.nextRemaining !== null">
-                                次階級まで：
-                                {{ formatNumber(result.nextRemaining) }}
-                            </template>
-
-                            <template v-else-if="result">
-                                計算対象上限に到達
-                            </template>
-
-                            <template v-else>次階級まで：—</template>
-                        </div>
-                    </div>
-
-                    <div class="metric">
-                        <div class="metric-label">計算終了時の残り体力</div>
-
-                        <div class="metric-value">
-                            {{ result ? formatNumber(result.finalStamina) : '—' }}
-                        </div>
-
-                        <div class="metric-detail">
-                            {{ recoveryStatusLabel }}
-                        </div>
-
-                        <div class="metric-detail">
-                            体力30で停止していた時間：
-                            {{
-                                result
-                                    ? formatDuration(result.frozenSeconds)
-                                    : '—'
-                            }}
-                        </div>
-                    </div>
+                    
                 </section>
 
                 <p
@@ -1708,14 +1630,6 @@
                         </li>
 
                         <li>
-                            アイテムを使用できるのは現在体力が27未満のときだけです。
-                            さらに、使用後の体力が30未満となる個数までに制限します。
-                            体力26なら1個で29、体力25なら1個で28、
-                            体力24なら1個で27、体力0なら最大9個で27です。
-                            体力27・28・29・30では使用しません。
-                        </li>
-
-                        <li>
                             通常モードの入力数は、その階級で新たに追加する個数です。
                             前階級からの未使用分と合算し、
                             使用条件を満たす個数ずつ補充します。
@@ -1746,12 +1660,6 @@
                         </li>
 
                         <li>
-                            計算期間が終了した場合や、計算対象上限に到達した場合、
-                            使い切れなかったアイテムは未使用として残します。
-                            未到達階級に設定した分を、先の階級から前借りして使うことはありません。
-                        </li>
-
-                        <li>
                             体力1を消費すると基本速度×40の博識を獲得します。
                             昇級に必要な分だけ体力を消費し、
                             足りなければ所持体力をすべて消費します。
@@ -1762,9 +1670,6 @@
                         <li>
                             体力30では回復タイマーが15分00秒のまま停止します。
                             30から29以下に減った時刻から15分のカウントを開始します。
-                            30未満での体力消費・アイテム補充ではタイマーをリセットしません。
-                            アイテム使用後は必ず30未満なので、
-                            アイテム補充だけで回復タイマーが停止することはありません。
                         </li>
 
                         <li>
@@ -1795,13 +1700,6 @@
                         </li>
 
                         <li>
-                            逆算モードでは手動の階級別アイテム数と保留設定を使いません。
-                            全階級共通のアイテム残数を管理し、
-                            昇級可能なら昇級、不足していれば所持体力を優先して消費します。
-                            それでも不足した場合、使用条件内で必要なアイテムを補充します。
-                        </li>
-
-                        <li>
                             逆算はアイテム0個で確認した後、個数を増やして到達可能な範囲を探し、
                             二分探索で即時補充方針における最少個数を求めます。
                             探索上限は合計100万個です。
@@ -1827,16 +1725,6 @@
                             オフライン中は必要博識が揃っていても昇級しません。
                         </li>
 
-                        <li>
-                            上部の到達階級欄には、その階級へ昇級する予想日時を表示します。
-                            再開時点ですでにいた階級の過去の到達日時は、
-                            入力情報からはわからないため不明と表示します。
-                        </li>
-
-                        <li>
-                            階級データと係数は添付HTMLを引き継いでいます。
-                            最終行はゲーム上の最高階級ではなく、このデータの計算対象上限です。
-                        </li>
                     </ul>
                 </details>
 
