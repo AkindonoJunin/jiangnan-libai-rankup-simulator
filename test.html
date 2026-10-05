@@ -289,7 +289,7 @@
 
         table {
             width: 100%;
-            min-width: 960px;
+            min-width: 780px;
             border-collapse: collapse;
             background: var(--panel);
             font-size: 14px;
@@ -342,7 +342,7 @@
         }
 
         .item-cell {
-            min-width: 220px;
+            min-width: 260px;
         }
 
         .item-cell-layout {
@@ -357,10 +357,6 @@
             color: var(--muted);
         }
 
-        .mode-cell {
-            min-width: 235px;
-        }
-
         .stepper {
             display: grid;
             grid-template-columns: 44px minmax(55px, 1fr) 44px;
@@ -370,10 +366,6 @@
         .stepper input {
             padding: 6px 2px;
             text-align: center;
-        }
-
-        .hold-fields {
-            margin-top: 10px;
         }
 
         .cell-title,
@@ -501,8 +493,7 @@
                 grid-template-columns: 1fr;
             }
 
-            .item-cell,
-            .mode-cell {
+            .item-cell {
                 grid-column: 1 / -1;
             }
         }
@@ -606,7 +597,6 @@
                                 <th scope="col">基本速度 / 次の必要量</th>
                                 <th scope="col">到達予想 / 所要時間</th>
                                 <th scope="col">アイテム設定 / 使用・引継ぎ</th>
-                                <th scope="col">昇級・体力消費</th>
                             </tr>
                         </thead>
                         <tbody id="grade-rows"></tbody>
@@ -755,10 +745,7 @@
                     offlinePeriods: [],
                     buffs,
                     settings: GRADES.map(() => ({
-                        itemCount: 0,
-                        mode: "auto",
-                        targetDay: 1,
-                        targetTime: "12:00:00"
+                        itemCount: 0
                     }))
                 };
             }
@@ -1060,8 +1047,7 @@
 
                     if (!applicable) {
                         return {
-                            itemCount: 0,
-                            holdUntil: 0
+                            itemCount: 0
                         };
                     }
 
@@ -1072,19 +1058,7 @@
                         MAX_ITEMS
                     );
 
-                    if (!["auto", "manual"].includes(setting.mode)) {
-                        errors.push(`階級${index}の昇級モードが不正です。`);
-                    }
-
-                    const holdUntil = setting.mode === "manual"
-                        ? readTime(
-                            setting.targetDay,
-                            setting.targetTime,
-                            `階級${index}の保留解除日時`
-                        )
-                        : 0;
-
-                    return { itemCount, holdUntil };
+                    return { itemCount };
                 });
 
                 let goalGrade = null;
@@ -1143,12 +1117,6 @@
                 for (const period of merged) {
                     addBoundary(period.start);
                     addBoundary(period.end);
-                }
-
-                if (!reverse) {
-                    for (const setting of settings) {
-                        addBoundary(setting.holdUntil);
-                    }
                 }
 
                 return {
@@ -1415,15 +1383,9 @@
                         }
 
                         const grade = GRADES[gradeIndex];
-                        const setting = input.settings[gradeIndex];
 
                         if (!reverse) {
-                            // 元コード同様、保留中でも補充は先に処理する。
                             useItems(remaining[gradeIndex]);
-
-                            if (time < setting.holdUntil) {
-                                return;
-                            }
                         }
 
                         const required = grade.req * EXP_SCALE;
@@ -2154,45 +2116,11 @@
                         reverseBox
                     );
 
-                    const modeCell = element("td", null, "mode-cell");
-                    const modeBox = element("div");
-
-                    const modeSelect = control(
-                        setting,
-                        "mode",
-                        {
-                            "aria-label": `${grade.name}での昇級・体力消費`
-                        },
-                        [
-                            ["auto", "オンライン時に即時実行"],
-                            ["manual", "指定時刻まで両方を保留"]
-                        ]
-                    );
-
-                    const hold = dateField(
-                        setting,
-                        "targetDay",
-                        "targetTime",
-                        `${grade.name}の保留解除`
-                    );
-                    hold.classList.add("hold-fields");
-
-                    modeBox.append(modeSelect, hold);
-
-                    const modeNote = element("span", "—", "muted");
-
-                    modeCell.append(
-                        element("span", "昇級・体力消費", "cell-title"),
-                        modeBox,
-                        modeNote
-                    );
-
                     row.append(
                         heading,
                         speedCell,
                         timeCell,
-                        itemCell,
-                        modeCell
+                        itemCell
                     );
 
                     fragment.append(row);
@@ -2209,10 +2137,7 @@
                         reverseBox,
                         reverseCount,
                         firstUse,
-                        itemSummary,
-                        modeBox,
-                        modeNote,
-                        hold
+                        itemSummary
                     });
                 }
 
@@ -2258,17 +2183,10 @@
                     nodes.editor.hidden = reverse || !applicable;
                     nodes.inactive.hidden = reverse || applicable;
                     nodes.reverseBox.hidden = !reverse;
-                    nodes.modeBox.hidden = reverse || !applicable;
-                    nodes.modeNote.hidden = !reverse && applicable;
-                    nodes.hold.hidden = config.settings[index].mode !== "manual";
 
                     nodes.inactive.textContent = index === LAST_GRADE
                         ? "計算対象上限では使用しません"
                         : "再開前の階級は設定対象外";
-
-                    nodes.modeNote.textContent = reverse && applicable
-                        ? "オンライン時に即時実行"
-                        : "—";
                 });
             }
 
