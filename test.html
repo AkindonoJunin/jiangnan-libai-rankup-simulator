@@ -345,14 +345,9 @@
             min-width: 260px;
         }
 
-        .item-cell-layout {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
         .item-summary {
+            display: block;
+            margin-top: 4px;
             font-size: 12px;
             color: var(--muted);
         }
@@ -637,7 +632,8 @@
         (() => {
             "use strict";
 
-            const TOTAL_SECONDS = 60 * 60 * 60;
+            const TOTAL_HOURS = 60;
+            const TOTAL_SECONDS = TOTAL_HOURS * 3600;
             const START_HOUR = 10;
             const NATURAL_INTERVAL = 8;
             const STAMINA_INTERVAL = 15 * 60;
@@ -722,7 +718,7 @@
             let shownLogs = 0;
 
             function createDefaultConfig() {
-                const buffs = Array(60).fill(30);
+                const buffs = Array(TOTAL_HOURS).fill(30);
                 buffs[0] = 3;
 
                 return {
@@ -896,7 +892,7 @@
 
                 if (
                     !Array.isArray(source.buffs) ||
-                    source.buffs.length !== 60 ||
+                    source.buffs.length !== TOTAL_HOURS ||
                     !Array.isArray(source.settings) ||
                     source.settings.length !== GRADES.length ||
                     !Array.isArray(source.offlinePeriods) ||
@@ -1456,8 +1452,6 @@
                         boundaryIndex += 1;
                     }
 
-                    // 自然獲得を飛ばさず、次の8秒刻みを必ず処理する。
-                    // その前に回復・境界・終了時刻が来る場合は先に処理する。
                     const nextTime = Math.min(
                         nextNatural,
                         nextRecovery,
@@ -1474,7 +1468,6 @@
 
                     time = nextTime;
 
-                    // 同時刻では自然獲得、体力回復、プレイヤー操作の順。
                     if (time === nextNatural) {
                         const buffIndex = Math.min(
                             input.buffs.length - 1,
@@ -2093,17 +2086,12 @@
                         }
                     }
 
-                    const itemLayout = element("div", null, "item-cell-layout");
                     const itemSummary = element("span", "", "item-summary");
-                    itemLayout.append(stepper, itemSummary);
-                    editor.append(itemLayout);
+                    editor.append(stepper, itemSummary);
 
                     const inactive = element("span", "", "muted");
-                    const reverseBox = element("div");
                     const reverseCount = element("strong", "—");
                     const firstUse = element("span", "", "sub");
-
-                    reverseBox.append(reverseCount, firstUse);
 
                     itemCell.append(
                         element(
@@ -2113,7 +2101,8 @@
                         ),
                         editor,
                         inactive,
-                        reverseBox
+                        reverseCount,
+                        firstUse
                     );
 
                     row.append(
@@ -2134,7 +2123,6 @@
                         editor,
                         input,
                         inactive,
-                        reverseBox,
                         reverseCount,
                         firstUse,
                         itemSummary
@@ -2182,7 +2170,8 @@
                     nodes.target.hidden = !target;
                     nodes.editor.hidden = reverse || !applicable;
                     nodes.inactive.hidden = reverse || applicable;
-                    nodes.reverseBox.hidden = !reverse;
+                    nodes.reverseCount.hidden = !reverse;
+                    nodes.firstUse.hidden = !reverse;
 
                     nodes.inactive.textContent = index === LAST_GRADE
                         ? "計算対象上限では使用しません"
@@ -2587,7 +2576,7 @@
                             return;
                         }
 
-                        for (let index = 1; index < 60; index += 1) {
+                        for (let index = 1; index < TOTAL_HOURS; index += 1) {
                             config.buffs[index] = value;
                             ui.buffControls[index].value = String(value);
                         }
@@ -2689,7 +2678,6 @@
             try {
                 buildSettings();
                 buildRows();
-                updateVisibility();
 
                 $("app").hidden = false;
                 $("boot-status").remove();
