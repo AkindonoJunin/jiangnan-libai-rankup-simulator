@@ -1,0 +1,2800 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0b1220">
+    <meta name="referrer" content="no-referrer">
+    <meta
+        http-equiv="Content-Security-Policy"
+        content="
+            default-src 'none';
+            script-src 'unsafe-inline';
+            style-src 'unsafe-inline';
+            connect-src 'none';
+            object-src 'none';
+            base-uri 'none';
+            form-action 'none';
+        "
+    >
+    <title>江南/李白等級昇級シミュレーター</title>
+
+    <style>
+        :root {
+            color-scheme: dark;
+            --bg: #0b1220;
+            --panel: #111c2e;
+            --border: #304158;
+            --text: #edf3fb;
+            --muted: #a9b8cc;
+            --green: #6ee7b7;
+            --cyan: #7dd3fc;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        [hidden] {
+            display: none !important;
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font-family: system-ui, sans-serif;
+            line-height: 1.6;
+        }
+
+        button,
+        input,
+        select {
+            min-height: 44px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font: inherit;
+        }
+
+        button {
+            padding: 8px 12px;
+            background: #20314a;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+
+        button:hover:not(:disabled) {
+            background: #2b4160;
+        }
+
+        input,
+        select {
+            width: 100%;
+            min-width: 0;
+            padding: 8px;
+            background: #091321;
+        }
+
+        :disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        :focus-visible {
+            outline: 3px solid var(--cyan);
+            outline-offset: 3px;
+        }
+
+        h1,
+        h2,
+        p {
+            margin-top: 0;
+        }
+
+        h2 {
+            font-size: 17px;
+        }
+
+        fieldset {
+            min-width: 0;
+            margin: 0;
+            padding: 0;
+            border: 0;
+        }
+
+        label {
+            display: block;
+        }
+
+        summary {
+            padding: 8px 0;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--border);
+            background: var(--panel);
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 19px;
+        }
+
+        header p {
+            margin: 2px 0 0;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 330px minmax(0, 1fr);
+            align-items: start;
+            gap: 18px;
+            max-width: 1800px;
+            margin: auto;
+            padding: 18px;
+        }
+
+        #settings-panel {
+            position: sticky;
+            top: 96px;
+            max-height: calc(100vh - 114px);
+            max-height: calc(100dvh - 114px);
+            overflow-y: auto;
+            scrollbar-gutter: stable;
+        }
+
+        main {
+            min-width: 0;
+            scroll-margin-top: 96px;
+        }
+
+        .panel,
+        .metric,
+        .notice {
+            margin-bottom: 14px;
+            padding: 16px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: var(--panel);
+        }
+
+        .fields {
+            display: grid;
+            gap: 12px;
+        }
+
+        .grid,
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .date-fields {
+            grid-template-columns: 84px minmax(0, 1fr);
+        }
+
+        .heading,
+        .actions {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .heading {
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .heading h2 {
+            margin: 0;
+        }
+
+        .field-label,
+        .muted,
+        .sub,
+        .cell-title {
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .field-label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .sub {
+            display: block;
+            margin-top: 5px;
+        }
+
+        .offline-period {
+            margin-top: 12px;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+
+        .buff-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 8px;
+            max-height: 310px;
+            overflow-y: auto;
+            margin-top: 12px;
+            padding: 3px;
+        }
+
+        .buff-grid .field-label {
+            font-size: 12px;
+        }
+
+        .danger {
+            color: #fda4af;
+        }
+
+        .full-width {
+            width: 100%;
+        }
+
+        .metric-value,
+        .arrival {
+            color: var(--green);
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .metric-value {
+            overflow-wrap: anywhere;
+            font-size: 20px;
+        }
+
+        .arrival {
+            display: block;
+            margin-top: 6px;
+        }
+
+        .error {
+            border-color: #be5266;
+            background: #361b29;
+            color: #ffe4e9;
+        }
+
+        .warning {
+            border-color: #9a7837;
+            background: #302718;
+            color: #fde4af;
+        }
+
+        .table-scroll {
+            overflow-x: auto;
+            margin-bottom: 14px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+        }
+
+        table {
+            width: 100%;
+            min-width: 960px;
+            border-collapse: collapse;
+            background: var(--panel);
+            font-size: 14px;
+        }
+
+        th,
+        td {
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+            text-align: left;
+            vertical-align: top;
+        }
+
+        thead {
+            background: #1b2a40;
+            color: var(--muted);
+        }
+
+        tbody th {
+            min-width: 175px;
+            font-weight: 400;
+        }
+
+        tbody tr:last-child > * {
+            border-bottom: 0;
+        }
+
+        .target-row {
+            background: #14312e;
+        }
+
+        .grade-name {
+            display: block;
+            margin: 5px 0;
+            font-weight: 700;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 7px;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .reached {
+            color: var(--green);
+            border-color: #34795f;
+        }
+
+        .item-cell {
+            min-width: 190px;
+        }
+
+        .mode-cell {
+            min-width: 235px;
+        }
+
+        .stepper {
+            display: grid;
+            grid-template-columns: 44px minmax(55px, 1fr) 44px;
+            gap: 5px;
+        }
+
+        .stepper input {
+            padding: 6px 2px;
+            text-align: center;
+        }
+
+        .hold-fields {
+            margin-top: 10px;
+        }
+
+        .cell-title,
+        .mobile-only {
+            display: none;
+        }
+
+        .event-log {
+            max-height: 420px;
+            overflow-y: auto;
+            margin: 0 0 12px;
+            padding: 0;
+            list-style: none;
+        }
+
+        .event-log li {
+            padding: 10px 0;
+            border-top: 1px solid var(--border);
+        }
+
+        .event-log time {
+            display: block;
+            color: var(--cyan);
+            font-size: 13px;
+        }
+
+        .boot {
+            margin: 24px;
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+            clip-path: inset(50%);
+            white-space: nowrap;
+        }
+
+        @media (max-width: 980px) {
+            header {
+                padding: 10px 12px;
+            }
+
+            header h1 {
+                font-size: 16px;
+            }
+
+            .mobile-only {
+                display: block;
+            }
+
+            .layout {
+                display: block;
+                padding: 12px;
+            }
+
+            #settings-panel {
+                position: static;
+                display: none;
+                max-height: none;
+                overflow: visible;
+            }
+
+            #settings-panel.is-open {
+                display: block;
+            }
+
+            input,
+            select {
+                font-size: 16px;
+            }
+
+            .table-scroll {
+                overflow: visible;
+                border: 0;
+            }
+
+            table,
+            tbody {
+                display: block;
+                min-width: 0;
+            }
+
+            thead {
+                position: absolute;
+                width: 1px;
+                height: 1px;
+                overflow: hidden;
+                clip-path: inset(50%);
+            }
+
+            tbody tr {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 12px;
+                margin-bottom: 14px;
+                padding: 14px;
+                border: 1px solid var(--border);
+                border-radius: 12px;
+            }
+
+            tbody th,
+            tbody td {
+                display: block;
+                min-width: 0;
+                padding: 0;
+                border: 0;
+            }
+
+            tbody th {
+                grid-column: 1 / -1;
+                padding-bottom: 10px;
+                border-bottom: 1px solid var(--border);
+            }
+
+            .cell-title {
+                display: block;
+                margin-bottom: 6px;
+            }
+        }
+
+        @media (max-width: 540px) {
+            .metrics {
+                grid-template-columns: 1fr;
+            }
+
+            .item-cell,
+            .mode-cell {
+                grid-column: 1 / -1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <p id="boot-status" class="panel boot" role="status">
+        アプリを準備しています。
+    </p>
+
+    <noscript>
+        <p class="panel boot">
+            このシミュレーターにはJavaScriptが必要です。
+        </p>
+    </noscript>
+
+    <div id="app" hidden>
+        <header>
+            <div>
+                <h1>江南/李白等級昇級シミュレーター</h1>
+                <p>Made by Akindonojunin</p>
+            </div>
+
+            <button
+                id="settings-toggle"
+                type="button"
+                class="mobile-only"
+                data-action="toggle-settings"
+                aria-controls="settings-panel"
+                aria-expanded="false"
+            >
+                設定を開く
+            </button>
+        </header>
+
+        <div class="layout">
+            <aside
+                id="settings-panel"
+                aria-label="シミュレーション設定"
+            >
+                <div id="settings-content"></div>
+            </aside>
+
+            <main id="results">
+                <div class="heading">
+                    <h2 id="result-title">シミュレーション結果</h2>
+
+                    <button type="button" data-action="recalculate">
+                        再計算
+                    </button>
+                </div>
+
+                <p
+                    id="status"
+                    class="muted"
+                    role="status"
+                    aria-live="polite"
+                    aria-atomic="true"
+                ></p>
+
+                <div
+                    id="errors"
+                    class="notice error"
+                    role="alert"
+                    hidden
+                ></div>
+
+                <div
+                    id="reverse-warning"
+                    class="notice warning"
+                    hidden
+                ></div>
+
+                <section class="metrics" aria-label="計算結果の概要">
+                    <div class="metric">
+                        <div id="grade-label" class="field-label">
+                            到達階級
+                        </div>
+                        <div id="final-grade" class="metric-value">—</div>
+                        <div id="final-arrival" class="arrival">—</div>
+                    </div>
+
+                    <div class="metric">
+                        <div id="items-label" class="field-label">
+                            実際に使用するアイテム
+                        </div>
+                        <div id="total-items" class="metric-value">—</div>
+                        <div id="items-detail" class="sub">—</div>
+                    </div>
+                </section>
+
+                <div class="table-scroll">
+                    <table>
+                        <caption class="sr-only">
+                            階級ごとの到達予想とアイテム設定
+                        </caption>
+                        <thead>
+                            <tr>
+                                <th scope="col">階級</th>
+                                <th scope="col">基本速度 / 次の必要量</th>
+                                <th scope="col">到達予想 / 所要時間</th>
+                                <th scope="col">アイテム設定 / 使用・引継ぎ</th>
+                                <th scope="col">昇級・体力消費</th>
+                            </tr>
+                        </thead>
+                        <tbody id="grade-rows"></tbody>
+                    </table>
+                </div>
+
+                <details id="log-details" class="panel" hidden>
+                    <summary id="log-summary">操作ログ</summary>
+                    <ol id="event-log" class="event-log"></ol>
+                    <button
+                        id="more-logs"
+                        type="button"
+                        data-action="more-logs"
+                        hidden
+                    >
+                        続きを表示
+                    </button>
+                </details>
+
+                <details class="panel">
+                    <summary>計算ルール・制約</summary>
+                    <ul>
+                        <li>
+                            計算期間は1日目10:00:00から3日目22:00:00までです。
+                            最初の1時間のバフは3%固定です。
+                        </li>
+                        <li>
+                            オフライン期間は開始時刻を含み、終了時刻を含みません。
+                            オフライン中も自然獲得と体力回復は進みます。
+                        </li>
+                    </ul>
+                </details>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        (() => {
+            "use strict";
+
+            const TOTAL_SECONDS = 60 * 60 * 60;
+            const START_HOUR = 10;
+            const NATURAL_INTERVAL = 8;
+            const STAMINA_INTERVAL = 15 * 60;
+            const STAMINA_CAP = 30;
+            const STAMINA_PER_ITEM = 3;
+            const ITEM_THRESHOLD = 27;
+            const EXP_MULTIPLIER = 40;
+            const EXP_SCALE = 100;
+
+            const MAX_ITEMS = 1_000_000;
+            const MAX_INITIAL_EXP = 1_000_000_000_000;
+            const MAX_OFFLINE_PERIODS = 64;
+            const MAX_LOGS = 2_000;
+            const LOG_PAGE_SIZE = 100;
+            const MAX_OPERATIONS = 200_000;
+
+            const BUFF_OPTIONS = Object.freeze([3, 10, 20, 30]);
+            const CANCELLED = Symbol("cancelled");
+
+            const GRADES = Object.freeze([
+                ["良民三等/練気期一段", 100, 41000],
+                ["良民二等/練気期二段", 200, 288200],
+                ["良民一等/練気期三段", 300, 497700],
+                ["文人三等/築基期一段", 400, 747600],
+                ["文人二等/築基期二段", 500, 1058000],
+                ["文人一等/築基期三段", 600, 1414000],
+                ["才女三等/結丹期一段", 700, 1874000],
+                ["才女二等/結丹期二段", 800, 2364000],
+                ["才女一等/結丹期三段", 900, 2980000],
+                ["学士六等/元嬰期一段", 1000, 3667000],
+                ["学士五等/元嬰期二段", 1100, 4466000],
+                ["学士四等/元嬰期三段", 1200, 5341000],
+                ["学士三等/元嬰期四段", 1300, 6346000],
+                ["学士二等/元嬰期五段", 1400, 7491000],
+                ["学士一等/元嬰期六段", 1500, 8730000],
+                ["翰林六等/化神期一段", 1600, 10120000],
+                ["翰林五等/化神期二段", 1700, 11680000],
+                ["翰林四等/化神期三段", 1800, 13350000],
+                ["翰林三等/化神期四段", 1900, 15200000],
+                ["翰林二等/化神期五段", 2000, 17180000],
+                ["翰林一等/化神期六段", 2100, 19340000],
+                ["博雅六等/錬虚期一段", 2200, 16190000],
+                ["博雅五等/錬虚期二段", 2300, 18300000],
+                ["博雅四等/錬虚期三段", 2400, 26970000],
+                ["博雅三等/錬虚期四段", 2500, 63300000],
+                ["博雅二等/錬虚期五段", 2600, 68430000],
+                ["博雅一等/錬虚期六段", 2700, 73540000],
+                ["名仕九等/合体期一段", 2800, 79070000],
+                ["名仕八等/合体期二段", 2900, 84680000]
+            ].map(([name, speed, req], id) => {
+                return Object.freeze({ id, name, speed, req });
+            }));
+
+            const LAST_GRADE = GRADES.length - 1;
+            const GRADE_OPTIONS = GRADES.map((grade) => {
+                return [grade.id, `${grade.id}：${grade.name}`];
+            });
+            const BUFF_SELECT_OPTIONS = BUFF_OPTIONS.map((value) => {
+                return [value, `${value}%`];
+            });
+            const DAY_OPTIONS = [
+                [1, "1日目"],
+                [2, "2日目"],
+                [3, "3日目"]
+            ];
+
+            const formatter = new Intl.NumberFormat("ja-JP", {
+                maximumFractionDigits: 2
+            });
+
+            const $ = (id) => document.getElementById(id);
+            const bindings = new WeakMap();
+            const rowNodes = [];
+            const ui = {};
+
+            let config = createDefaultConfig();
+            let result = null;
+            let reverseResult = null;
+            let revision = 0;
+            let timer = null;
+            let nextOfflineId = 1;
+            let shownLogs = 0;
+
+            function createDefaultConfig() {
+                const buffs = Array(60).fill(30);
+                buffs[0] = 3;
+
+                return {
+                    calculationMode: "forward",
+                    startMode: "new",
+                    resume: {
+                        day: 1,
+                        time: "10:00:00",
+                        gradeIndex: 0,
+                        exp: 0,
+                        stamina: 30,
+                        recoveryMinutes: 15,
+                        recoverySeconds: 0
+                    },
+                    goal: {
+                        gradeIndex: 20,
+                        day: 3,
+                        time: "22:00:00"
+                    },
+                    offlinePeriods: [],
+                    buffs,
+                    settings: GRADES.map(() => ({
+                        itemCount: 0,
+                        mode: "auto",
+                        targetDay: 1,
+                        targetTime: "12:00:00"
+                    }))
+                };
+            }
+
+            function formatNumber(value) {
+                return Number.isFinite(value) ? formatter.format(value) : "—";
+            }
+
+            function pad2(value) {
+                return String(value).padStart(2, "0");
+            }
+
+            function formatTime(seconds) {
+                if (!Number.isSafeInteger(seconds) || seconds < 0) {
+                    return "—";
+                }
+
+                const absolute = seconds + START_HOUR * 3600;
+                const day = Math.floor(absolute / 86400) + 1;
+                const withinDay = absolute % 86400;
+                const hours = Math.floor(withinDay / 3600);
+                const minutes = Math.floor((withinDay % 3600) / 60);
+
+                return (
+                    `${day}日目 ${pad2(hours)}:` +
+                    `${pad2(minutes)}:${pad2(withinDay % 60)}`
+                );
+            }
+
+            function formatDuration(seconds) {
+                if (!Number.isSafeInteger(seconds) || seconds < 0) {
+                    return "—";
+                }
+
+                if (seconds === 0) {
+                    return "0秒";
+                }
+
+                const parts = [];
+                const hours = Math.floor(seconds / 3600);
+                const minutes = Math.floor((seconds % 3600) / 60);
+
+                if (hours > 0) {
+                    parts.push(`${hours}時間`);
+                }
+                if (minutes > 0) {
+                    parts.push(`${minutes}分`);
+                }
+                if (seconds % 60 > 0) {
+                    parts.push(`${seconds % 60}秒`);
+                }
+
+                return parts.join("");
+            }
+
+            function hourLabel(index) {
+                const hour = START_HOUR + index;
+
+                return (
+                    `${Math.floor(hour / 24) + 1}日目 ` +
+                    `${pad2(hour % 24)}時`
+                );
+            }
+
+            function parseTime(day, text) {
+                const numericDay = Number(day);
+
+                if (
+                    !Number.isInteger(numericDay) ||
+                    numericDay < 1 ||
+                    numericDay > 3 ||
+                    typeof text !== "string"
+                ) {
+                    return NaN;
+                }
+
+                const match = /^(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(text);
+
+                if (!match) {
+                    return NaN;
+                }
+
+                const hours = Number(match[1]);
+                const minutes = Number(match[2]);
+                const seconds = Number(match[3] ?? 0);
+
+                if (hours > 23 || minutes > 59 || seconds > 59) {
+                    return NaN;
+                }
+
+                return (
+                    (numericDay - 1) * 86400 +
+                    hours * 3600 +
+                    minutes * 60 +
+                    seconds -
+                    START_HOUR * 3600
+                );
+            }
+
+            function validateConfig(source) {
+                const errors = [];
+
+                function missing(value) {
+                    return (
+                        value === null ||
+                        value === undefined ||
+                        typeof value === "boolean" ||
+                        (typeof value === "string" && value.trim() === "")
+                    );
+                }
+
+                function readInteger(value, label, minimum, maximum) {
+                    const number = Number(value);
+
+                    if (
+                        missing(value) ||
+                        !Number.isSafeInteger(number) ||
+                        number < minimum ||
+                        number > maximum
+                    ) {
+                        errors.push(
+                            `${label}は${formatNumber(minimum)}〜` +
+                            `${formatNumber(maximum)}の整数で入力してください。`
+                        );
+                        return null;
+                    }
+
+                    return number;
+                }
+
+                function readTime(day, time, label) {
+                    const seconds = parseTime(day, time);
+
+                    if (
+                        !Number.isInteger(seconds) ||
+                        seconds < 0 ||
+                        seconds > TOTAL_SECONDS
+                    ) {
+                        errors.push(
+                            `${label}は1日目10:00:00〜` +
+                            "3日目22:00:00で指定してください。"
+                        );
+                        return null;
+                    }
+
+                    return seconds;
+                }
+
+                if (
+                    !Array.isArray(source.buffs) ||
+                    source.buffs.length !== 60 ||
+                    !Array.isArray(source.settings) ||
+                    source.settings.length !== GRADES.length ||
+                    !Array.isArray(source.offlinePeriods) ||
+                    source.offlinePeriods.length > MAX_OFFLINE_PERIODS
+                ) {
+                    return {
+                        errors: ["設定データの構造または件数が不正です。"],
+                        input: null
+                    };
+                }
+
+                if (!["forward", "reverse"].includes(source.calculationMode)) {
+                    errors.push("計算モードが不正です。");
+                }
+
+                if (!["new", "resume"].includes(source.startMode)) {
+                    errors.push("開始方法が不正です。");
+                }
+
+                const reverse = source.calculationMode === "reverse";
+                let startTime = 0;
+                let startGrade = 0;
+                let startExpScaled = 0;
+                let startStamina = STAMINA_CAP;
+                let recoveryRemaining = STAMINA_INTERVAL;
+
+                if (source.startMode === "resume") {
+                    const resume = source.resume;
+
+                    startTime = readTime(
+                        resume.day,
+                        resume.time,
+                        "再開日時"
+                    );
+                    startGrade = readInteger(
+                        resume.gradeIndex,
+                        "現在階級",
+                        0,
+                        LAST_GRADE
+                    );
+                    startStamina = readInteger(
+                        resume.stamina,
+                        "現在体力",
+                        0,
+                        STAMINA_CAP
+                    );
+
+                    const exp = Number(resume.exp);
+                    const scaled = Math.round(exp * EXP_SCALE);
+
+                    if (
+                        missing(resume.exp) ||
+                        !Number.isFinite(exp) ||
+                        exp < 0 ||
+                        exp > MAX_INITIAL_EXP ||
+                        !Number.isSafeInteger(scaled) ||
+                        scaled / EXP_SCALE !== exp
+                    ) {
+                        errors.push(
+                            "現在博識は0〜" +
+                            `${formatNumber(MAX_INITIAL_EXP)}の範囲で、` +
+                            "小数第2位まで入力してください。"
+                        );
+                    } else {
+                        startExpScaled = scaled;
+                    }
+
+                    if (startStamina !== null && startStamina < STAMINA_CAP) {
+                        const minutes = readInteger(
+                            resume.recoveryMinutes,
+                            "回復までの残り分",
+                            0,
+                            15
+                        );
+                        const seconds = readInteger(
+                            resume.recoverySeconds,
+                            "回復までの残り秒",
+                            0,
+                            59
+                        );
+
+                        if (minutes !== null && seconds !== null) {
+                            recoveryRemaining = minutes * 60 + seconds;
+
+                            if (
+                                recoveryRemaining < 1 ||
+                                recoveryRemaining > STAMINA_INTERVAL
+                            ) {
+                                errors.push(
+                                    "次の体力回復までの残り時間は" +
+                                    "0分01秒〜15分00秒で入力してください。"
+                                );
+                            }
+                        }
+                    }
+                }
+
+                const buffs = source.buffs.map((value, index) => {
+                    const number = Number(value);
+
+                    if (!BUFF_OPTIONS.includes(number)) {
+                        errors.push(`${hourLabel(index)}のバフ率が不正です。`);
+                    }
+
+                    return number;
+                });
+
+                if (buffs[0] !== 3) {
+                    errors.push("最初の1時間のバフは3%固定です。");
+                }
+
+                const periods = [];
+
+                source.offlinePeriods.forEach((period, index) => {
+                    const start = readTime(
+                        period.startDay,
+                        period.startTime,
+                        `オフライン期間${index + 1}の開始`
+                    );
+                    const end = readTime(
+                        period.endDay,
+                        period.endTime,
+                        `オフライン期間${index + 1}の終了`
+                    );
+
+                    if (start === null || end === null) {
+                        return;
+                    }
+
+                    if (end <= start) {
+                        errors.push(
+                            `オフライン期間${index + 1}の終了は、` +
+                            "開始より後にしてください。"
+                        );
+                        return;
+                    }
+
+                    periods.push({ start, end });
+                });
+
+                const settings = source.settings.map((setting, index) => {
+                    const applicable = (
+                        !reverse &&
+                        startGrade !== null &&
+                        index >= startGrade &&
+                        index < LAST_GRADE
+                    );
+
+                    if (!applicable) {
+                        return {
+                            itemCount: 0,
+                            holdUntil: 0
+                        };
+                    }
+
+                    const itemCount = readInteger(
+                        setting.itemCount,
+                        `階級${index}の追加アイテム数`,
+                        0,
+                        MAX_ITEMS
+                    );
+
+                    if (!["auto", "manual"].includes(setting.mode)) {
+                        errors.push(`階級${index}の昇級モードが不正です。`);
+                    }
+
+                    const holdUntil = setting.mode === "manual"
+                        ? readTime(
+                            setting.targetDay,
+                            setting.targetTime,
+                            `階級${index}の保留解除日時`
+                        )
+                        : 0;
+
+                    return { itemCount, holdUntil };
+                });
+
+                let goalGrade = null;
+                let endTime = TOTAL_SECONDS;
+
+                if (reverse) {
+                    goalGrade = readInteger(
+                        source.goal.gradeIndex,
+                        "目標階級",
+                        0,
+                        LAST_GRADE
+                    );
+                    endTime = readTime(
+                        source.goal.day,
+                        source.goal.time,
+                        "目標日時"
+                    );
+
+                    if (
+                        startTime !== null &&
+                        endTime !== null &&
+                        endTime < startTime
+                    ) {
+                        errors.push(
+                            "目標日時は計算開始・再開日時以降にしてください。"
+                        );
+                    }
+                }
+
+                if (errors.length > 0) {
+                    return { errors, input: null };
+                }
+
+                periods.sort((a, b) => a.start - b.start);
+
+                const merged = [];
+
+                for (const period of periods) {
+                    const previous = merged[merged.length - 1];
+
+                    if (!previous || period.start > previous.end) {
+                        merged.push({ ...period });
+                    } else {
+                        previous.end = Math.max(previous.end, period.end);
+                    }
+                }
+
+                const boundaries = new Set([endTime]);
+
+                function addBoundary(time) {
+                    if (time > startTime && time <= endTime) {
+                        boundaries.add(time);
+                    }
+                }
+
+                for (const period of merged) {
+                    addBoundary(period.start);
+                    addBoundary(period.end);
+                }
+
+                if (!reverse) {
+                    for (const setting of settings) {
+                        addBoundary(setting.holdUntil);
+                    }
+                }
+
+                return {
+                    errors: [],
+                    input: {
+                        mode: source.calculationMode,
+                        startMode: source.startMode,
+                        startTime,
+                        startGrade,
+                        startExpScaled,
+                        startStamina,
+                        recoveryRemaining,
+                        goalGrade,
+                        endTime,
+                        buffs,
+                        settings,
+                        offlinePeriods: merged,
+                        boundaries: [...boundaries].sort((a, b) => a - b)
+                    }
+                };
+            }
+
+            function simulate(input, options = {}) {
+                const {
+                    budget = null,
+                    detailed = true,
+                    stopAtTarget = false
+                } = options;
+
+                const reverse = budget !== null;
+
+                if (
+                    reverse &&
+                    (
+                        !Number.isSafeInteger(budget) ||
+                        budget < 0 ||
+                        budget > MAX_ITEMS
+                    )
+                ) {
+                    throw new Error("アイテム予算が不正です。");
+                }
+
+                const size = GRADES.length;
+                const remaining = reverse
+                    ? null
+                    : input.settings.map((setting) => setting.itemCount);
+
+                const plannedItems = reverse
+                    ? budget
+                    : remaining.reduce((sum, count) => sum + count, 0);
+
+                const data = detailed
+                    ? {
+                        reachedTimes: Array(size).fill(null),
+                        itemsByGrade: Array(size).fill(0),
+                        itemTimes: Array(size).fill(null),
+                        carriedInByGrade: Array(size).fill(0),
+                        carriedOutByGrade: Array(size).fill(0),
+                        logs: [],
+                        omittedLogs: 0
+                    }
+                    : null;
+
+                let time = input.startTime;
+                let gradeIndex = input.startGrade;
+                let exp = input.startExpScaled;
+                let stamina = input.startStamina;
+                let totalItems = 0;
+                let offlineIndex = 0;
+                let boundaryIndex = 0;
+                let operations = 0;
+
+                let nextNatural = (
+                    Math.floor(time / NATURAL_INTERVAL) + 1
+                ) * NATURAL_INTERVAL;
+
+                let nextRecovery = stamina < STAMINA_CAP
+                    ? time + input.recoveryRemaining
+                    : Infinity;
+
+                if (data) {
+                    data.reachedTimes[gradeIndex] = time;
+                }
+
+                function guard() {
+                    operations += 1;
+
+                    if (operations > MAX_OPERATIONS) {
+                        throw new Error("計算処理の安全上限を超えました。");
+                    }
+                }
+
+                function isOffline() {
+                    while (
+                        offlineIndex < input.offlinePeriods.length &&
+                        input.offlinePeriods[offlineIndex].end <= time
+                    ) {
+                        offlineIndex += 1;
+                    }
+
+                    const period = input.offlinePeriods[offlineIndex];
+
+                    return Boolean(
+                        period &&
+                        period.start <= time &&
+                        time < period.end
+                    );
+                }
+
+                function log(message) {
+                    if (!data) {
+                        return;
+                    }
+
+                    if (data.logs.length >= MAX_LOGS) {
+                        data.omittedLogs += 1;
+                        return;
+                    }
+
+                    data.logs.push({
+                        time,
+                        message,
+                        stamina,
+                        exp: exp / EXP_SCALE
+                    });
+                }
+
+                function useItems(requested) {
+                    if (stamina >= ITEM_THRESHOLD || requested <= 0) {
+                        return 0;
+                    }
+
+                    const available = reverse
+                        ? budget - totalItems
+                        : remaining[gradeIndex];
+
+                    const capacity = Math.floor(
+                        (STAMINA_CAP - 1 - stamina) / STAMINA_PER_ITEM
+                    );
+
+                    const count = Math.max(
+                        0,
+                        Math.min(requested, available, capacity)
+                    );
+
+                    if (count === 0) {
+                        return 0;
+                    }
+
+                    const before = stamina;
+                    const recovered = count * STAMINA_PER_ITEM;
+
+                    stamina += recovered;
+                    totalItems += count;
+
+                    if (!reverse) {
+                        remaining[gradeIndex] -= count;
+                    }
+
+                    if (
+                        !Number.isSafeInteger(count) ||
+                        before >= ITEM_THRESHOLD ||
+                        stamina >= STAMINA_CAP
+                    ) {
+                        throw new Error("アイテム使用条件に違反しました。");
+                    }
+
+                    if (data) {
+                        data.itemsByGrade[gradeIndex] += count;
+
+                        if (data.itemTimes[gradeIndex] === null) {
+                            data.itemTimes[gradeIndex] = time;
+                        }
+
+                        log(
+                            `${GRADES[gradeIndex].name}で` +
+                            `アイテム${formatNumber(count)}個を使用` +
+                            `（体力＋${formatNumber(recovered)}：` +
+                            `${before}→${stamina}）`
+                        );
+                    }
+
+                    return count;
+                }
+
+                function consumeStamina(count) {
+                    if (
+                        !Number.isSafeInteger(count) ||
+                        count < 1 ||
+                        count > stamina
+                    ) {
+                        throw new Error("体力消費数が不正です。");
+                    }
+
+                    const wasFull = stamina === STAMINA_CAP;
+                    const grade = GRADES[gradeIndex];
+
+                    const gained = (
+                        count *
+                        grade.speed *
+                        EXP_MULTIPLIER *
+                        EXP_SCALE
+                    );
+
+                    stamina -= count;
+                    exp += gained;
+
+                    if (wasFull) {
+                        nextRecovery = time + STAMINA_INTERVAL;
+                    }
+
+                    if (data) {
+                        log(
+                            `${grade.name}で体力${count}を消費` +
+                            `（博識＋${formatNumber(gained / EXP_SCALE)}）`
+                        );
+                    }
+                }
+
+                function promote(required) {
+                    const previous = gradeIndex;
+                    let carried = 0;
+
+                    exp -= required;
+                    gradeIndex += 1;
+
+                    if (!reverse) {
+                        carried = remaining[previous];
+                        remaining[previous] = 0;
+                        remaining[gradeIndex] += carried;
+                    }
+
+                    if (data) {
+                        data.reachedTimes[gradeIndex] = time;
+                        data.carriedOutByGrade[previous] = carried;
+                        data.carriedInByGrade[gradeIndex] = carried;
+
+                        let message = `${GRADES[gradeIndex].name}へ昇級`;
+
+                        if (carried > 0) {
+                            message += (
+                                `（未使用アイテム${formatNumber(carried)}個を引継ぎ）`
+                            );
+                        }
+
+                        log(message);
+                    }
+                }
+
+                function processActions() {
+                    if (isOffline()) {
+                        return;
+                    }
+
+                    while (gradeIndex < LAST_GRADE) {
+                        guard();
+
+                        if (
+                            stopAtTarget &&
+                            reverse &&
+                            gradeIndex >= input.goalGrade
+                        ) {
+                            return;
+                        }
+
+                        const grade = GRADES[gradeIndex];
+                        const setting = input.settings[gradeIndex];
+
+                        if (!reverse) {
+                            // 元コード同様、保留中でも補充は先に処理する。
+                            useItems(remaining[gradeIndex]);
+
+                            if (time < setting.holdUntil) {
+                                return;
+                            }
+                        }
+
+                        const required = grade.req * EXP_SCALE;
+
+                        if (exp >= required) {
+                            promote(required);
+                            continue;
+                        }
+
+                        const perStamina = (
+                            grade.speed *
+                            EXP_MULTIPLIER *
+                            EXP_SCALE
+                        );
+
+                        const neededStamina = Math.ceil(
+                            (required - exp) / perStamina
+                        );
+
+                        if (stamina > 0) {
+                            consumeStamina(
+                                Math.min(neededStamina, stamina)
+                            );
+                            continue;
+                        }
+
+                        if (
+                            reverse &&
+                            gradeIndex < input.goalGrade &&
+                            totalItems < budget
+                        ) {
+                            const requested = Math.min(
+                                Math.ceil(
+                                    neededStamina / STAMINA_PER_ITEM
+                                ),
+                                budget - totalItems
+                            );
+
+                            if (useItems(requested) > 0) {
+                                continue;
+                            }
+                        }
+
+                        return;
+                    }
+                }
+
+                while (true) {
+                    guard();
+                    processActions();
+
+                    if (
+                        stopAtTarget &&
+                        reverse &&
+                        gradeIndex >= input.goalGrade
+                    ) {
+                        break;
+                    }
+
+                    if (time === input.endTime) {
+                        break;
+                    }
+
+                    while (
+                        boundaryIndex < input.boundaries.length &&
+                        input.boundaries[boundaryIndex] <= time
+                    ) {
+                        boundaryIndex += 1;
+                    }
+
+                    // 自然獲得を飛ばさず、次の8秒刻みを必ず処理する。
+                    // その前に回復・境界・終了時刻が来る場合は先に処理する。
+                    const nextTime = Math.min(
+                        nextNatural,
+                        nextRecovery,
+                        input.boundaries[boundaryIndex] ?? Infinity,
+                        input.endTime
+                    );
+
+                    if (
+                        !Number.isSafeInteger(nextTime) ||
+                        nextTime <= time
+                    ) {
+                        throw new Error("次のイベント時刻が不正です。");
+                    }
+
+                    time = nextTime;
+
+                    // 同時刻では自然獲得、体力回復、プレイヤー操作の順。
+                    if (time === nextNatural) {
+                        const buffIndex = Math.min(
+                            input.buffs.length - 1,
+                            Math.floor(time / 3600)
+                        );
+
+                        exp += (
+                            GRADES[gradeIndex].speed *
+                            (100 + input.buffs[buffIndex])
+                        );
+
+                        nextNatural += NATURAL_INTERVAL;
+                    }
+
+                    if (time === nextRecovery) {
+                        stamina += 1;
+                        nextRecovery = stamina < STAMINA_CAP
+                            ? time + STAMINA_INTERVAL
+                            : Infinity;
+                    }
+                }
+
+                if (
+                    !Number.isSafeInteger(exp) ||
+                    exp < 0 ||
+                    !Number.isInteger(stamina) ||
+                    stamina < 0 ||
+                    stamina > STAMINA_CAP ||
+                    totalItems < 0 ||
+                    totalItems > plannedItems
+                ) {
+                    throw new Error("計算結果の数値整合性が失われました。");
+                }
+
+                const targetReached = (
+                    reverse && gradeIndex >= input.goalGrade
+                );
+
+                if (!data) {
+                    return { targetReached };
+                }
+
+                const unusedItems = plannedItems - totalItems;
+                const usedTotal = data.itemsByGrade.reduce(
+                    (sum, count) => sum + count,
+                    0
+                );
+
+                if (usedTotal !== totalItems) {
+                    throw new Error("使用アイテム数の整合性が失われました。");
+                }
+
+                if (!reverse) {
+                    const remainingTotal = remaining.reduce(
+                        (sum, count) => sum + count,
+                        0
+                    );
+
+                    const unreachedPlanned = input.settings
+                        .slice(gradeIndex + 1)
+                        .reduce(
+                            (sum, setting) => sum + setting.itemCount,
+                            0
+                        );
+
+                    if (
+                        remaining.some((count) => count < 0) ||
+                        remainingTotal !== unusedItems ||
+                        remaining[gradeIndex] + unreachedPlanned !== unusedItems
+                    ) {
+                        throw new Error(
+                            "アイテム使用数と引継ぎ残数が一致しません。"
+                        );
+                    }
+                }
+
+                return {
+                    ...data,
+                    mode: reverse ? "reverse" : "forward",
+                    startMode: input.startMode,
+                    startTime: input.startTime,
+                    startGrade: input.startGrade,
+                    endTime: time,
+                    finalGrade: gradeIndex,
+                    finalReachedAt: data.reachedTimes[gradeIndex],
+                    totalItems,
+                    plannedItems,
+                    unusedItems,
+                    remainingItemsByGrade: remaining,
+                    targetReached
+                };
+            }
+
+            function firstOnlineTime(input) {
+                let time = input.startTime;
+
+                for (const period of input.offlinePeriods) {
+                    if (period.end <= time) {
+                        continue;
+                    }
+
+                    if (period.start > time) {
+                        break;
+                    }
+
+                    time = period.end;
+                }
+
+                return time <= input.endTime ? time : null;
+            }
+
+            function yieldToBrowser() {
+                return new Promise((resolve) => {
+                    setTimeout(resolve, 0);
+                });
+            }
+
+            async function solveRequiredItems(input, ticket) {
+                const baseline = simulate(input, { budget: 0 });
+
+                if (baseline.targetReached) {
+                    return {
+                        result: baseline,
+                        reverse: {
+                            possible: true
+                        }
+                    };
+                }
+
+                if (firstOnlineTime(input) === null) {
+                    return {
+                        result: baseline,
+                        reverse: {
+                            possible: false,
+                            message:
+                                "開始から目標日時まで、オンラインで操作できる時刻がありません。"
+                        }
+                    };
+                }
+
+                async function canReach(budget) {
+                    await yieldToBrowser();
+
+                    if (ticket !== revision) {
+                        throw CANCELLED;
+                    }
+
+                    return simulate(input, {
+                        budget,
+                        detailed: false,
+                        stopAtTarget: true
+                    }).targetReached;
+                }
+
+                let low = 0;
+                let high = 1;
+                let reachable = await canReach(high);
+
+                while (!reachable && high < MAX_ITEMS) {
+                    low = high;
+                    high = Math.min(high * 2, MAX_ITEMS);
+                    reachable = await canReach(high);
+                }
+
+                if (!reachable) {
+                    return {
+                        result: baseline,
+                        reverse: {
+                            possible: false,
+                            message:
+                                `探索上限${formatNumber(MAX_ITEMS)}個でも、` +
+                                "即時補充方式では目標日時までに到達しません。"
+                        }
+                    };
+                }
+
+                while (high - low > 1) {
+                    const middle = Math.floor((low + high) / 2);
+
+                    if (await canReach(middle)) {
+                        high = middle;
+                    } else {
+                        low = middle;
+                    }
+                }
+
+                const solved = simulate(input, { budget: high });
+
+                if (!solved.targetReached || solved.totalItems !== high) {
+                    throw new Error("逆算結果の到達・使用個数の検算に失敗しました。");
+                }
+
+                return {
+                    result: solved,
+                    reverse: {
+                        possible: true
+                    }
+                };
+            }
+
+            function element(tag, text = null, className = "") {
+                const node = document.createElement(tag);
+
+                if (text !== null) {
+                    node.textContent = String(text);
+                }
+
+                if (className) {
+                    node.className = className;
+                }
+
+                return node;
+            }
+
+            function actionButton(text, action, className = "") {
+                const node = element("button", text, className);
+
+                node.type = "button";
+                node.dataset.action = action;
+
+                return node;
+            }
+
+            function control(object, key, attributes = {}, options = null) {
+                const node = element(options ? "select" : "input");
+
+                for (const [name, value] of Object.entries(attributes)) {
+                    node.setAttribute(name, String(value));
+                }
+
+                if (options) {
+                    for (const [value, text] of options) {
+                        const option = element("option", text);
+                        option.value = String(value);
+                        node.append(option);
+                    }
+                }
+
+                node.value = String(object[key]);
+                bindings.set(node, { object, key });
+
+                return node;
+            }
+
+            function numberControl(object, key, min, max, step = 1) {
+                return control(object, key, {
+                    type: "number",
+                    min,
+                    max,
+                    step,
+                    inputmode: step === 1 ? "numeric" : "decimal"
+                });
+            }
+
+            function labelled(text, node) {
+                const label = element("label");
+
+                label.append(
+                    element("span", text, "field-label"),
+                    node
+                );
+
+                return label;
+            }
+
+            function dateField(object, dayKey, timeKey, title) {
+                const fieldset = element("fieldset");
+                const grid = element("div", null, "grid date-fields");
+
+                grid.append(
+                    control(
+                        object,
+                        dayKey,
+                        { "aria-label": `${title}の日` },
+                        DAY_OPTIONS
+                    ),
+                    control(object, timeKey, {
+                        type: "time",
+                        step: 1,
+                        "aria-label": `${title}の時刻`
+                    })
+                );
+
+                fieldset.append(
+                    element("legend", title, "field-label"),
+                    grid
+                );
+
+                return fieldset;
+            }
+
+            function section(title) {
+                const node = element("section", null, "panel fields");
+                node.append(element("h2", title));
+                return node;
+            }
+
+            function buildSettings() {
+                const root = $("settings-content");
+                root.replaceChildren();
+
+                const modeSection = section("1. 計算モード");
+
+                modeSection.append(
+                    labelled(
+                        "計算方法",
+                        control(
+                            config,
+                            "calculationMode",
+                            {},
+                            [
+                                ["forward", "到達階級を予測"],
+                                ["reverse", "必要個数を逆算"]
+                            ]
+                        )
+                    )
+                );
+
+                ui.goal = element("div", null, "fields");
+                ui.goal.append(
+                    labelled(
+                        "到達したい階級",
+                        control(config.goal, "gradeIndex", {}, GRADE_OPTIONS)
+                    ),
+                    dateField(
+                        config.goal,
+                        "day",
+                        "time",
+                        "目標日時（この時刻までに到達）"
+                    )
+                );
+
+                modeSection.append(ui.goal);
+
+                const startSection = section("2. 開始状態");
+
+                startSection.append(
+                    labelled(
+                        "開始方法",
+                        control(
+                            config,
+                            "startMode",
+                            {},
+                            [
+                                ["new", "新規スタート"],
+                                ["resume", "途中から再開"]
+                            ]
+                        )
+                    )
+                );
+
+                ui.resume = element("div", null, "fields");
+                ui.resume.append(
+                    dateField(config.resume, "day", "time", "再開日時"),
+                    labelled(
+                        "現在階級",
+                        control(
+                            config.resume,
+                            "gradeIndex",
+                            {},
+                            GRADE_OPTIONS
+                        )
+                    ),
+                    labelled(
+                        "現在博識",
+                        numberControl(
+                            config.resume,
+                            "exp",
+                            0,
+                            MAX_INITIAL_EXP,
+                            0.01
+                        )
+                    ),
+                    labelled(
+                        "現在体力",
+                        numberControl(config.resume, "stamina", 0, STAMINA_CAP)
+                    )
+                );
+
+                ui.recovery = element("fieldset");
+
+                const recoveryGrid = element("div", null, "grid");
+                recoveryGrid.append(
+                    labelled(
+                        "分",
+                        numberControl(
+                            config.resume,
+                            "recoveryMinutes",
+                            0,
+                            15
+                        )
+                    ),
+                    labelled(
+                        "秒",
+                        numberControl(
+                            config.resume,
+                            "recoverySeconds",
+                            0,
+                            59
+                        )
+                    )
+                );
+
+                ui.recovery.append(
+                    element(
+                        "legend",
+                        "次の体力回復までの残り時間",
+                        "field-label"
+                    ),
+                    recoveryGrid
+                );
+
+                ui.resume.append(ui.recovery);
+                startSection.append(ui.resume);
+
+                const offlineSection = element("section", null, "panel");
+                const offlineHeading = element("div", null, "heading");
+
+                ui.addOffline = actionButton("＋追加", "add-offline");
+                ui.offline = element("div");
+
+                offlineHeading.append(
+                    element("h2", "3. オフライン期間"),
+                    ui.addOffline
+                );
+
+                offlineSection.append(offlineHeading, ui.offline);
+
+                const buffSection = section("4. バフ率（1時間ごと）");
+                const presets = element("div", null, "actions");
+                const buffGrid = element("div", null, "buff-grid");
+
+                for (const value of BUFF_OPTIONS) {
+                    const button = actionButton(`${value}%`, "preset");
+                    button.dataset.value = String(value);
+                    button.setAttribute(
+                        "aria-label",
+                        `最初の1時間を除く全バフを${value}%に設定`
+                    );
+                    presets.append(button);
+                }
+
+                ui.buffControls = config.buffs.map((value, index) => {
+                    const select = control(
+                        config.buffs,
+                        index,
+                        {},
+                        BUFF_SELECT_OPTIONS
+                    );
+
+                    select.disabled = index === 0;
+
+                    buffGrid.append(
+                        labelled(
+                            hourLabel(index) + (index === 0 ? " 固定" : ""),
+                            select
+                        )
+                    );
+
+                    return select;
+                });
+
+                buffSection.append(presets, buffGrid);
+
+                const resetSection = element("section", null, "panel");
+                resetSection.append(
+                    actionButton(
+                        "設定を初期化",
+                        "reset",
+                        "full-width danger"
+                    )
+                );
+
+                root.append(
+                    modeSection,
+                    startSection,
+                    offlineSection,
+                    buffSection,
+                    resetSection,
+                    actionButton(
+                        "設定を閉じて結果を見る",
+                        "close-settings",
+                        "mobile-only full-width panel"
+                    )
+                );
+
+                renderOfflinePeriods();
+            }
+
+            function renderOfflinePeriods() {
+                ui.offline.replaceChildren();
+                ui.addOffline.disabled = (
+                    config.offlinePeriods.length >= MAX_OFFLINE_PERIODS
+                );
+
+                config.offlinePeriods.forEach((period, index) => {
+                    const panel = element("div", null, "offline-period fields");
+                    const heading = element("div", null, "heading");
+                    const remove = actionButton(
+                        "削除",
+                        "remove-offline",
+                        "danger"
+                    );
+
+                    remove.dataset.id = String(period.id);
+                    remove.setAttribute(
+                        "aria-label",
+                        `オフライン期間${index + 1}を削除`
+                    );
+
+                    heading.append(
+                        element("strong", `期間 ${index + 1}`),
+                        remove
+                    );
+
+                    panel.append(
+                        heading,
+                        dateField(
+                            period,
+                            "startDay",
+                            "startTime",
+                            `期間${index + 1}の開始`
+                        ),
+                        dateField(
+                            period,
+                            "endDay",
+                            "endTime",
+                            `期間${index + 1}の終了`
+                        )
+                    );
+
+                    ui.offline.append(panel);
+                });
+            }
+
+            function buildRows() {
+                const body = $("grade-rows");
+                const fragment = document.createDocumentFragment();
+
+                rowNodes.length = 0;
+
+                for (const grade of GRADES) {
+                    const setting = config.settings[grade.id];
+                    const row = element("tr");
+
+                    const heading = element("th");
+                    heading.scope = "row";
+
+                    const badge = element("span", "未計算", "badge");
+                    const target = element("span", "目標階級", "sub");
+                    target.hidden = true;
+
+                    heading.append(
+                        element("span", `#${grade.id}`, "muted"),
+                        element("span", grade.name, "grade-name"),
+                        badge,
+                        target
+                    );
+
+                    const speedCell = element("td");
+                    speedCell.append(
+                        element("span", "基本速度 / 次の必要量", "cell-title"),
+                        element(
+                            "span",
+                            `${formatNumber(grade.speed)} / 8秒`
+                        ),
+                        element(
+                            "span",
+                            grade.id === LAST_GRADE
+                                ? "次：計算対象外"
+                                : `次：${formatNumber(grade.req)}`,
+                            "sub"
+                        )
+                    );
+
+                    const timeCell = element("td");
+                    const arrival = element("span", "—", "arrival");
+                    const duration = element("span", "—", "sub");
+
+                    timeCell.append(
+                        element("span", "到達予想 / 所要時間", "cell-title"),
+                        arrival,
+                        duration
+                    );
+
+                    const itemCell = element("td", null, "item-cell");
+                    const editor = element("div");
+                    const stepper = element("div", null, "stepper");
+                    const input = numberControl(
+                        setting,
+                        "itemCount",
+                        0,
+                        MAX_ITEMS
+                    );
+
+                    input.id = `items-${grade.id}`;
+                    input.setAttribute(
+                        "aria-label",
+                        `${grade.name}で追加するアイテム数`
+                    );
+
+                    for (const [delta, text] of [[-1, "−"], [1, "＋"]]) {
+                        const button = actionButton(text, "adjust-items");
+                        button.dataset.grade = String(grade.id);
+                        button.dataset.delta = String(delta);
+                        button.setAttribute(
+                            "aria-label",
+                            `${grade.name}の追加アイテムを1個` +
+                            (delta < 0 ? "減らす" : "増やす")
+                        );
+
+                        if (delta < 0) {
+                            stepper.append(button, input);
+                        } else {
+                            stepper.append(button);
+                        }
+                    }
+
+                    const itemLabel = element("label", "追加個数", "field-label");
+                    itemLabel.htmlFor = input.id;
+                    editor.append(itemLabel, stepper);
+
+                    const inactive = element("span", "", "muted");
+                    const reverseBox = element("div");
+                    const reverseCount = element("strong", "—");
+                    const firstUse = element("span", "", "sub");
+
+                    reverseBox.append(reverseCount, firstUse);
+
+                    const breakdown = element("div");
+                    const carriedIn = element("span", "", "sub");
+                    const used = element("span", "", "sub");
+                    const carriedOut = element("span", "", "sub");
+
+                    breakdown.append(carriedIn, used, carriedOut);
+
+                    itemCell.append(
+                        element(
+                            "span",
+                            "アイテム設定 / 使用・引継ぎ",
+                            "cell-title"
+                        ),
+                        editor,
+                        inactive,
+                        reverseBox,
+                        breakdown
+                    );
+
+                    const modeCell = element("td", null, "mode-cell");
+                    const modeBox = element("div");
+
+                    const modeSelect = control(
+                        setting,
+                        "mode",
+                        {
+                            "aria-label": `${grade.name}での昇級・体力消費`
+                        },
+                        [
+                            ["auto", "オンライン時に即時実行"],
+                            ["manual", "指定時刻まで両方を保留"]
+                        ]
+                    );
+
+                    const hold = dateField(
+                        setting,
+                        "targetDay",
+                        "targetTime",
+                        `${grade.name}の保留解除`
+                    );
+                    hold.classList.add("hold-fields");
+
+                    modeBox.append(modeSelect, hold);
+
+                    const modeNote = element("span", "—", "muted");
+
+                    modeCell.append(
+                        element("span", "昇級・体力消費", "cell-title"),
+                        modeBox,
+                        modeNote
+                    );
+
+                    row.append(
+                        heading,
+                        speedCell,
+                        timeCell,
+                        itemCell,
+                        modeCell
+                    );
+
+                    fragment.append(row);
+
+                    rowNodes.push({
+                        row,
+                        badge,
+                        target,
+                        arrival,
+                        duration,
+                        editor,
+                        input,
+                        inactive,
+                        reverseBox,
+                        reverseCount,
+                        firstUse,
+                        breakdown,
+                        carriedIn,
+                        used,
+                        carriedOut,
+                        modeBox,
+                        modeNote,
+                        hold
+                    });
+                }
+
+                body.replaceChildren(fragment);
+            }
+
+            function startingGrade() {
+                if (config.startMode !== "resume") {
+                    return 0;
+                }
+
+                const value = Number(config.resume.gradeIndex);
+
+                return (
+                    Number.isInteger(value) &&
+                    value >= 0 &&
+                    value <= LAST_GRADE
+                ) ? value : 0;
+            }
+
+            function updateVisibility() {
+                const reverse = config.calculationMode === "reverse";
+                const start = startingGrade();
+
+                ui.goal.hidden = !reverse;
+                ui.resume.hidden = config.startMode !== "resume";
+                ui.recovery.hidden = (
+                    Number(config.resume.stamina) >= STAMINA_CAP
+                );
+
+                $("result-title").textContent = reverse
+                    ? "必要アイテム数の逆算"
+                    : "シミュレーション結果";
+
+                rowNodes.forEach((nodes, index) => {
+                    const applicable = index >= start && index < LAST_GRADE;
+                    const target = reverse && (
+                        index === Number(config.goal.gradeIndex)
+                    );
+
+                    nodes.row.classList.toggle("target-row", target);
+                    nodes.target.hidden = !target;
+                    nodes.editor.hidden = reverse || !applicable;
+                    nodes.inactive.hidden = reverse || applicable;
+                    nodes.reverseBox.hidden = !reverse;
+                    nodes.modeBox.hidden = reverse || !applicable;
+                    nodes.modeNote.hidden = !reverse && applicable;
+                    nodes.hold.hidden = config.settings[index].mode !== "manual";
+
+                    nodes.inactive.textContent = index === LAST_GRADE
+                        ? "計算対象上限では使用しません"
+                        : "再開前の階級は設定対象外";
+
+                    nodes.modeNote.textContent = reverse && applicable
+                        ? "オンライン時に即時実行"
+                        : "—";
+                });
+            }
+
+            function showErrors(messages) {
+                const box = $("errors");
+                box.replaceChildren();
+                box.hidden = messages.length === 0;
+
+                if (messages.length === 0) {
+                    return;
+                }
+
+                const list = element("ul");
+
+                for (const message of messages) {
+                    list.append(element("li", message));
+                }
+
+                box.append(
+                    element("strong", "入力・計算内容を確認してください"),
+                    list
+                );
+            }
+
+            function renderResults() {
+                const reverse = config.calculationMode === "reverse";
+                const failed = Boolean(
+                    reverseResult && !reverseResult.possible
+                );
+
+                $("grade-label").textContent = failed
+                    ? "参考到達階級（アイテム0個）"
+                    : "到達階級";
+
+                $("items-label").textContent = reverse
+                    ? "必要アイテム数"
+                    : "実際に使用するアイテム";
+
+                $("reverse-warning").hidden = !failed;
+                $("reverse-warning").textContent = failed
+                    ? (
+                        reverseResult.message +
+                        " 必要個数は算出せず、アイテム0個の参考結果を表示します。"
+                    )
+                    : "";
+
+                if (!result) {
+                    $("final-grade").textContent = "—";
+                    $("final-arrival").textContent = "到達日時：—";
+                    $("total-items").textContent = "—";
+                    $("items-detail").textContent = "—";
+                } else {
+                    const unchangedResume = (
+                        result.startMode === "resume" &&
+                        result.finalGrade === result.startGrade
+                    );
+
+                    $("final-grade").textContent = GRADES[result.finalGrade].name;
+                    $("final-arrival").textContent = unchangedResume
+                        ? "到達日時：再開時点で到達済み"
+                        : `到達日時：${formatTime(result.finalReachedAt)}`;
+
+                    $("total-items").textContent = failed
+                        ? "算出不可"
+                        : `${formatNumber(result.totalItems)}個`;
+
+                    if (result.mode === "forward") {
+                        $("items-detail").textContent = (
+                            `設定合計：${formatNumber(result.plannedItems)}個 ／ ` +
+                            `未使用：${formatNumber(result.unusedItems)}個`
+                        );
+                    } else {
+                        $("items-detail").textContent = failed
+                            ? "表はアイテム0個での参考計算です"
+                            : (
+                                result.totalItems === 0
+                                    ? "追加アイテム不要"
+                                    : ""
+                            );
+                    }
+                }
+
+                rowNodes.forEach((nodes, index) => {
+                    nodes.badge.classList.remove("reached");
+                    nodes.breakdown.hidden = true;
+                    nodes.reverseCount.textContent = "—";
+                    nodes.firstUse.textContent = "";
+
+                    if (!result) {
+                        nodes.badge.textContent = "未計算";
+                        nodes.arrival.textContent = "—";
+                        nodes.duration.textContent = "—";
+                        return;
+                    }
+
+                    const reachedAt = result.reachedTimes[index];
+
+                    if (index < result.startGrade) {
+                        nodes.badge.textContent = "再開前";
+                        nodes.arrival.textContent = "到達時刻不明";
+                        nodes.duration.textContent = "計算対象外";
+                    } else if (index === result.startGrade) {
+                        const resumed = result.startMode === "resume";
+
+                        nodes.badge.textContent = resumed
+                            ? "再開階級"
+                            : "開始階級";
+                        nodes.badge.classList.add("reached");
+                        nodes.arrival.textContent = resumed
+                            ? "到達時刻不明"
+                            : formatTime(result.startTime);
+                        nodes.duration.textContent = resumed
+                            ? `再開：${formatTime(result.startTime)}`
+                            : "開始時点";
+                    } else if (reachedAt === null) {
+                        nodes.badge.textContent = "未到達";
+                        nodes.arrival.textContent = "未到達";
+                        nodes.duration.textContent = "—";
+                    } else {
+                        const duration = (
+                            reachedAt - result.reachedTimes[index - 1]
+                        );
+                        const fromResume = (
+                            result.startMode === "resume" &&
+                            index === result.startGrade + 1
+                        );
+
+                        nodes.badge.textContent = "到達";
+                        nodes.badge.classList.add("reached");
+                        nodes.arrival.textContent = formatTime(reachedAt);
+                        nodes.duration.textContent = (
+                            (fromResume ? "再開から " : "前階級から ") +
+                            formatDuration(duration) +
+                            (duration === 0 ? "（同時）" : "")
+                        );
+                    }
+
+                    if (result.mode === "reverse") {
+                        nodes.reverseCount.textContent = (
+                            `${formatNumber(result.itemsByGrade[index])}個`
+                        );
+
+                        if (result.itemTimes[index] !== null) {
+                            nodes.firstUse.textContent = (
+                                `初回：${formatTime(result.itemTimes[index])}`
+                            );
+                        }
+                    } else if (reachedAt !== null) {
+                        nodes.breakdown.hidden = false;
+                        nodes.carriedIn.textContent = (
+                            `引継：${formatNumber(result.carriedInByGrade[index])}個`
+                        );
+                        nodes.used.textContent = (
+                            `実使用：${formatNumber(result.itemsByGrade[index])}個`
+                        );
+                        nodes.carriedOut.textContent = index < result.finalGrade
+                            ? (
+                                `次へ：${formatNumber(
+                                    result.carriedOutByGrade[index]
+                                )}個`
+                            )
+                            : (
+                                `残数：${formatNumber(
+                                    result.remainingItemsByGrade[index]
+                                )}個`
+                            );
+                    }
+                });
+
+                $("log-details").hidden = !result;
+                $("event-log").replaceChildren();
+                $("more-logs").hidden = true;
+                shownLogs = 0;
+
+                if (result) {
+                    $("log-summary").textContent = (
+                        `操作ログ（保存${formatNumber(result.logs.length)}件` +
+                        (
+                            result.omittedLogs > 0
+                                ? `・上限超過${formatNumber(result.omittedLogs)}件省略`
+                                : ""
+                        ) +
+                        "）"
+                    );
+
+                    if ($("log-details").open) {
+                        appendLogs();
+                    }
+                }
+            }
+
+            function appendLogs() {
+                if (!result) {
+                    return;
+                }
+
+                const list = $("event-log");
+
+                if (result.logs.length === 0 && shownLogs === 0) {
+                    list.replaceChildren(
+                        element("li", "操作ログはありません。")
+                    );
+                    $("more-logs").hidden = true;
+                    return;
+                }
+
+                const end = Math.min(
+                    shownLogs + LOG_PAGE_SIZE,
+                    result.logs.length
+                );
+                const fragment = document.createDocumentFragment();
+
+                for (let index = shownLogs; index < end; index += 1) {
+                    const entry = result.logs[index];
+                    const item = element("li");
+
+                    item.append(
+                        element("time", formatTime(entry.time)),
+                        element("div", entry.message),
+                        element(
+                            "small",
+                            `残り体力：${formatNumber(entry.stamina)} ／ ` +
+                            `残り博識：${formatNumber(entry.exp)}`,
+                            "sub"
+                        )
+                    );
+
+                    fragment.append(item);
+                }
+
+                list.append(fragment);
+                shownLogs = end;
+                $("more-logs").hidden = shownLogs >= result.logs.length;
+            }
+
+            function invalidate(delay = 150) {
+                revision += 1;
+
+                if (timer !== null) {
+                    clearTimeout(timer);
+                }
+
+                result = null;
+                reverseResult = null;
+
+                showErrors([]);
+                updateVisibility();
+                renderResults();
+
+                $("status").textContent = "更新待ち…";
+                $("results").setAttribute("aria-busy", "true");
+
+                const ticket = revision;
+
+                timer = setTimeout(() => {
+                    calculate(ticket);
+                }, delay);
+            }
+
+            async function calculate(ticket) {
+                if (ticket !== revision) {
+                    return;
+                }
+
+                timer = null;
+                $("status").textContent = "計算中…";
+
+                try {
+                    const validation = validateConfig(config);
+
+                    if (!validation.input) {
+                        showErrors(validation.errors);
+                        $("status").textContent = "入力エラーがあります";
+                        return;
+                    }
+
+                    await yieldToBrowser();
+
+                    if (ticket !== revision) {
+                        return;
+                    }
+
+                    const input = validation.input;
+                    let calculated;
+                    let reversed = null;
+
+                    if (input.mode === "reverse") {
+                        const solved = await solveRequiredItems(input, ticket);
+                        calculated = solved.result;
+                        reversed = solved.reverse;
+                    } else {
+                        calculated = simulate(input);
+                    }
+
+                    if (ticket !== revision) {
+                        return;
+                    }
+
+                    result = calculated;
+                    reverseResult = reversed;
+
+                    renderResults();
+
+                    $("status").textContent = (
+                        reverseResult && !reverseResult.possible
+                    )
+                        ? "必要個数は算出できません。参考計算を表示しています。"
+                        : "計算完了";
+                } catch (error) {
+                    if (error === CANCELLED || ticket !== revision) {
+                        return;
+                    }
+
+                    console.error(error);
+
+                    result = null;
+                    reverseResult = null;
+
+                    renderResults();
+                    showErrors([
+                        "計算の安全チェックに失敗しました。" +
+                        "入力を確認するか、設定を初期化してください。"
+                    ]);
+
+                    $("status").textContent = "計算を中止しました";
+                } finally {
+                    if (ticket === revision) {
+                        $("results").setAttribute("aria-busy", "false");
+                    }
+                }
+            }
+
+            function setSettingsOpen(open, scroll = false) {
+                $("settings-panel").classList.toggle("is-open", open);
+                $("settings-toggle").setAttribute(
+                    "aria-expanded",
+                    String(open)
+                );
+                $("settings-toggle").textContent = open
+                    ? "設定を閉じる"
+                    : "設定を開く";
+
+                if (scroll) {
+                    $("results").scrollIntoView({
+                        block: "start",
+                        behavior: "auto"
+                    });
+                }
+            }
+
+            function handleInput(event) {
+                const binding = bindings.get(event.target);
+
+                if (!binding) {
+                    return;
+                }
+
+                const value = event.target.value;
+
+                if (binding.object[binding.key] === value) {
+                    return;
+                }
+
+                binding.object[binding.key] = value;
+                invalidate();
+            }
+
+            $("app").addEventListener("input", handleInput);
+            $("app").addEventListener("change", handleInput);
+
+            $("app").addEventListener("click", (event) => {
+                if (!(event.target instanceof Element)) {
+                    return;
+                }
+
+                const button = event.target.closest("button[data-action]");
+
+                if (!button || button.disabled) {
+                    return;
+                }
+
+                switch (button.dataset.action) {
+                    case "recalculate":
+                        invalidate(0);
+                        break;
+
+                    case "toggle-settings":
+                        setSettingsOpen(
+                            !$("settings-panel").classList.contains("is-open")
+                        );
+                        break;
+
+                    case "close-settings":
+                        setSettingsOpen(false, true);
+                        break;
+
+                    case "more-logs":
+                        appendLogs();
+                        break;
+
+                    case "preset": {
+                        const value = Number(button.dataset.value);
+
+                        if (!BUFF_OPTIONS.includes(value)) {
+                            return;
+                        }
+
+                        for (let index = 1; index < 60; index += 1) {
+                            config.buffs[index] = value;
+                            ui.buffControls[index].value = String(value);
+                        }
+
+                        config.buffs[0] = 3;
+                        ui.buffControls[0].value = "3";
+                        invalidate();
+                        break;
+                    }
+
+                    case "add-offline":
+                        if (
+                            config.offlinePeriods.length >= MAX_OFFLINE_PERIODS
+                        ) {
+                            return;
+                        }
+
+                        config.offlinePeriods.push({
+                            id: nextOfflineId++,
+                            startDay: 1,
+                            startTime: "23:00:00",
+                            endDay: 2,
+                            endTime: "07:00:00"
+                        });
+
+                        renderOfflinePeriods();
+                        invalidate();
+                        break;
+
+                    case "remove-offline": {
+                        const id = Number(button.dataset.id);
+                        const index = config.offlinePeriods.findIndex(
+                            (period) => period.id === id
+                        );
+
+                        if (index !== -1) {
+                            config.offlinePeriods.splice(index, 1);
+                            renderOfflinePeriods();
+                            invalidate();
+                        }
+                        break;
+                    }
+
+                    case "adjust-items": {
+                        const index = Number(button.dataset.grade);
+                        const delta = Number(button.dataset.delta);
+
+                        if (
+                            !Number.isInteger(index) ||
+                            index < startingGrade() ||
+                            index >= LAST_GRADE ||
+                            ![-1, 1].includes(delta) ||
+                            config.calculationMode !== "forward"
+                        ) {
+                            return;
+                        }
+
+                        const raw = Number(config.settings[index].itemCount);
+                        const current = Number.isFinite(raw)
+                            ? Math.trunc(raw)
+                            : 0;
+
+                        const count = Math.max(
+                            0,
+                            Math.min(MAX_ITEMS, current + delta)
+                        );
+
+                        config.settings[index].itemCount = count;
+                        rowNodes[index].input.value = String(count);
+                        invalidate();
+                        break;
+                    }
+
+                    case "reset":
+                        if (
+                            !window.confirm(
+                                "すべての設定を初期状態に戻しますか？"
+                            )
+                        ) {
+                            return;
+                        }
+
+                        config = createDefaultConfig();
+                        nextOfflineId = 1;
+
+                        buildSettings();
+                        buildRows();
+                        invalidate(0);
+                        break;
+                }
+            });
+
+            $("log-details").addEventListener("toggle", () => {
+                if ($("log-details").open && result && shownLogs === 0) {
+                    appendLogs();
+                }
+            });
+
+            try {
+                buildSettings();
+                buildRows();
+                updateVisibility();
+
+                $("app").hidden = false;
+                $("boot-status").remove();
+
+                invalidate(0);
+            } catch (error) {
+                console.error(error);
+
+                const boot = $("boot-status");
+
+                if (boot) {
+                    boot.textContent = (
+                        "アプリを起動できませんでした。" +
+                        "対応するブラウザーで開き直してください。"
+                    );
+                }
+            }
+        })();
+    </script>
+</body>
+</html>
