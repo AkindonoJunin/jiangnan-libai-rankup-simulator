@@ -342,7 +342,19 @@
         }
 
         .item-cell {
-            min-width: 190px;
+            min-width: 220px;
+        }
+
+        .item-cell-layout {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .item-summary {
+            font-size: 12px;
+            color: var(--muted);
         }
 
         .mode-cell {
@@ -2119,9 +2131,10 @@
                         }
                     }
 
-                    const itemLabel = element("label", "追加個数", "field-label");
-                    itemLabel.htmlFor = input.id;
-                    editor.append(itemLabel, stepper);
+                    const itemLayout = element("div", null, "item-cell-layout");
+                    const itemSummary = element("span", "", "item-summary");
+                    itemLayout.append(stepper, itemSummary);
+                    editor.append(itemLayout);
 
                     const inactive = element("span", "", "muted");
                     const reverseBox = element("div");
@@ -2129,13 +2142,6 @@
                     const firstUse = element("span", "", "sub");
 
                     reverseBox.append(reverseCount, firstUse);
-
-                    const breakdown = element("div");
-                    const carriedIn = element("span", "", "sub");
-                    const used = element("span", "", "sub");
-                    const carriedOut = element("span", "", "sub");
-
-                    breakdown.append(carriedIn, used, carriedOut);
 
                     itemCell.append(
                         element(
@@ -2145,8 +2151,7 @@
                         ),
                         editor,
                         inactive,
-                        reverseBox,
-                        breakdown
+                        reverseBox
                     );
 
                     const modeCell = element("td", null, "mode-cell");
@@ -2204,10 +2209,7 @@
                         reverseBox,
                         reverseCount,
                         firstUse,
-                        breakdown,
-                        carriedIn,
-                        used,
-                        carriedOut,
+                        itemSummary,
                         modeBox,
                         modeNote,
                         hold
@@ -2351,7 +2353,7 @@
 
                 rowNodes.forEach((nodes, index) => {
                     nodes.badge.classList.remove("reached");
-                    nodes.breakdown.hidden = true;
+                    nodes.itemSummary.textContent = "";
                     nodes.reverseCount.textContent = "—";
                     nodes.firstUse.textContent = "";
 
@@ -2415,24 +2417,17 @@
                             );
                         }
                     } else if (reachedAt !== null) {
-                        nodes.breakdown.hidden = false;
-                        nodes.carriedIn.textContent = (
-                            `引継：${formatNumber(result.carriedInByGrade[index])}個`
+                        const cIn = result.carriedInByGrade[index];
+                        const used = result.itemsByGrade[index];
+                        const cOut = index < result.finalGrade
+                            ? result.carriedOutByGrade[index]
+                            : result.remainingItemsByGrade[index];
+                        const outLabel = index < result.finalGrade ? "次へ" : "残";
+
+                        nodes.itemSummary.textContent = (
+                            `実使用 ${formatNumber(used)}個 ` +
+                            `(引継 ${formatNumber(cIn)} → ${outLabel} ${formatNumber(cOut)})`
                         );
-                        nodes.used.textContent = (
-                            `実使用：${formatNumber(result.itemsByGrade[index])}個`
-                        );
-                        nodes.carriedOut.textContent = index < result.finalGrade
-                            ? (
-                                `次へ：${formatNumber(
-                                    result.carriedOutByGrade[index]
-                                )}個`
-                            )
-                            : (
-                                `残数：${formatNumber(
-                                    result.remainingItemsByGrade[index]
-                                )}個`
-                            );
                     }
                 });
 
