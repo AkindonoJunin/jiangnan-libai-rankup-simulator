@@ -323,7 +323,7 @@
 
         .grade-name {
             display: block;
-            margin: 2px 0 4px;
+            margin: 5px 0;
             font-weight: 700;
         }
 
@@ -364,8 +364,7 @@
         }
 
         .cell-title,
-        .mobile-only,
-        .mobile-arrival-wrapper {
+        .mobile-only {
             display: none;
         }
 
@@ -401,27 +400,6 @@
             white-space: nowrap;
         }
 
-        /* PCでのアコーディオン無効化・テーブル表示維持 */
-        @media (min-width: 981px) {
-            .grade-accordion {
-                display: contents;
-            }
-
-            .grade-summary {
-                display: contents;
-                cursor: default;
-            }
-
-            .grade-summary::-webkit-details-marker {
-                display: none;
-            }
-
-            .grade-details-content {
-                display: contents;
-            }
-        }
-
-        /* スマートフォン向け最適化 */
         @media (max-width: 980px) {
             header {
                 padding: 10px 12px;
@@ -476,90 +454,16 @@
             }
 
             tbody tr {
-                display: block;
-                margin-bottom: 12px;
-                padding: 0;
-                border: 1px solid var(--border);
-                border-radius: 12px;
-                background: var(--panel);
-                overflow: hidden;
-            }
-
-            .grade-accordion {
-                display: block;
-            }
-
-            /* タップ可能なヘッダーエリア */
-            .grade-summary {
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                gap: 10px;
-                padding: 14px;
-                list-style: none;
-                cursor: pointer;
-                user-select: none;
-                -webkit-tap-highlight-color: transparent;
-            }
-
-            .grade-summary::-webkit-details-marker {
-                display: none;
-            }
-
-            .grade-summary::after {
-                content: "▼";
-                font-size: 11px;
-                color: var(--muted);
-                transition: transform 0.2s ease;
-                margin-left: 4px;
-            }
-
-            .grade-accordion[open] .grade-summary::after {
-                transform: rotate(180deg);
-            }
-
-            tbody th {
-                display: block;
-                min-width: 0;
-                padding: 0;
-                border: 0;
-                flex: 1 1 auto;
-            }
-
-            .grade-header-left {
-                display: flex;
-                flex-wrap: wrap;
-                align-items: center;
-                gap: 6px;
-            }
-
-            .grade-name {
-                margin: 0;
-                font-size: 15px;
-            }
-
-            /* スマホ用ヘッダー右側の到達予想時刻 */
-            .mobile-arrival-wrapper {
-                display: block;
-                text-align: right;
-                flex-shrink: 0;
-            }
-
-            .mobile-arrival-wrapper .arrival {
-                margin-top: 0;
-                font-size: 14px;
-            }
-
-            /* 開閉する詳細コンテンツエリア */
-            .grade-details-content {
                 display: grid;
                 grid-template-columns: repeat(2, minmax(0, 1fr));
                 gap: 12px;
-                padding: 12px 14px 14px;
-                border-top: 1px dashed var(--border);
-                background: #0d1624;
+                margin-bottom: 14px;
+                padding: 14px;
+                border: 1px solid var(--border);
+                border-radius: 12px;
             }
 
+            tbody th,
             tbody td {
                 display: block;
                 min-width: 0;
@@ -567,22 +471,20 @@
                 border: 0;
             }
 
+            tbody th {
+                grid-column: 1 / -1;
+                padding-bottom: 10px;
+                border-bottom: 1px solid var(--border);
+            }
+
             .cell-title {
                 display: block;
                 margin-bottom: 6px;
-            }
-
-            .desktop-arrival {
-                display: none;
             }
         }
 
         @media (max-width: 540px) {
             .metrics {
-                grid-template-columns: 1fr;
-            }
-
-            .grade-details-content {
                 grid-template-columns: 1fr;
             }
 
@@ -787,7 +689,7 @@
 
             const LAST_GRADE = GRADES.length - 1;
             const GRADE_OPTIONS = GRADES.map((grade) => {
-                return [grade.id, `${grade.name}`];
+                return [grade.id, `${grade.id}：${grade.name}`];
             });
             const BUFF_SELECT_OPTIONS = BUFF_OPTIONS.map((value) => {
                 return [value, `${value}%`];
@@ -2111,36 +2013,19 @@
                     const setting = config.settings[grade.id];
                     const row = element("tr");
 
-                    // details/summary によるスマホ用アコーディオン構造
-                    const accordion = element("details", null, "grade-accordion");
-                    const summary = element("summary", null, "grade-summary");
-
                     const heading = element("th");
                     heading.scope = "row";
 
-                    const headerLeft = element("div", null, "grade-header-left");
                     const badge = element("span", "未計算", "badge");
                     const target = element("span", "目標階級", "sub");
                     target.hidden = true;
 
-                    headerLeft.append(
+                    heading.append(
+                        element("span", `#${grade.id}`, "muted"),
                         element("span", grade.name, "grade-name"),
                         badge,
                         target
                     );
-
-                    heading.append(headerLeft);
-
-                    // スマホのヘッダー右側に配置する到達予想
-                    const mobileArrivalWrapper = element("div", null, "mobile-arrival-wrapper");
-                    const mobileArrival = element("span", "—", "arrival");
-                    mobileArrivalWrapper.append(mobileArrival);
-
-                    summary.append(heading, mobileArrivalWrapper);
-                    accordion.append(summary);
-
-                    // 折りたたまれる詳細コンテンツ
-                    const detailsContent = element("div", null, "grade-details-content");
 
                     const speedCell = element("td");
                     speedCell.append(
@@ -2159,7 +2044,7 @@
                     );
 
                     const timeCell = element("td");
-                    const arrival = element("span", "—", "arrival desktop-arrival");
+                    const arrival = element("span", "—", "arrival");
                     const duration = element("span", "—", "sub");
 
                     timeCell.append(
@@ -2220,14 +2105,12 @@
                         firstUse
                     );
 
-                    detailsContent.append(
+                    row.append(
+                        heading,
                         speedCell,
                         timeCell,
                         itemCell
                     );
-
-                    accordion.append(detailsContent);
-                    row.append(accordion);
 
                     fragment.append(row);
 
@@ -2236,7 +2119,6 @@
                         badge,
                         target,
                         arrival,
-                        mobileArrival,
                         duration,
                         editor,
                         input,
@@ -2385,7 +2267,6 @@
                     if (!result) {
                         nodes.badge.textContent = "未計算";
                         nodes.arrival.textContent = "—";
-                        nodes.mobileArrival.textContent = "—";
                         nodes.duration.textContent = "—";
                         return;
                     }
@@ -2395,7 +2276,6 @@
                     if (index < result.startGrade) {
                         nodes.badge.textContent = "再開前";
                         nodes.arrival.textContent = "到達時刻不明";
-                        nodes.mobileArrival.textContent = "到達時刻不明";
                         nodes.duration.textContent = "計算対象外";
                     } else if (index === result.startGrade) {
                         const resumed = result.startMode === "resume";
@@ -2407,16 +2287,12 @@
                         nodes.arrival.textContent = resumed
                             ? "到達時刻不明"
                             : formatTime(result.startTime);
-                        nodes.mobileArrival.textContent = resumed
-                            ? "再開階級"
-                            : formatTime(result.startTime);
                         nodes.duration.textContent = resumed
                             ? `再開：${formatTime(result.startTime)}`
                             : "開始時点";
                     } else if (reachedAt === null) {
                         nodes.badge.textContent = "未到達";
                         nodes.arrival.textContent = "未到達";
-                        nodes.mobileArrival.textContent = "未到達";
                         nodes.duration.textContent = "—";
                     } else {
                         const duration = (
@@ -2430,7 +2306,6 @@
                         nodes.badge.textContent = "到達";
                         nodes.badge.classList.add("reached");
                         nodes.arrival.textContent = formatTime(reachedAt);
-                        nodes.mobileArrival.textContent = formatTime(reachedAt);
                         nodes.duration.textContent = (
                             (fromResume ? "再開から " : "前階級から ") +
                             formatDuration(duration) +
