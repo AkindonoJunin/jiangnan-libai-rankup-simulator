@@ -744,6 +744,7 @@
             const ITEM_THRESHOLD = 27;
             const EXP_MULTIPLIER = 40;
             const EXP_SCALE = 100;
+            const BUFF_BASE = 100;
 
             const MAX_ITEMS = 1_000_000;
             const MAX_INITIAL_EXP = 1_000_000_000_000;
@@ -1481,16 +1482,16 @@
                         }
 
                         const grade = GRADES[gradeIndex];
-
-                        if (!reverse) {
-                            useItems(remaining[gradeIndex]);
-                        }
-
                         const required = grade.req * EXP_SCALE;
 
+                        // A-1: 昇級判定をアイテム使用より先に行う
                         if (exp >= required) {
                             promote(required);
                             continue;
+                        }
+
+                        if (!reverse) {
+                            useItems(remaining[gradeIndex]);
                         }
 
                         const perStamina = (
@@ -1576,9 +1577,13 @@
                             Math.floor(time / 3600)
                         );
 
-                        exp += (
-                            GRADES[gradeIndex].speed *
-                            (100 + input.buffs[buffIndex])
+                        // A-3: BUFF_BASE を用いた明示的な式に修正
+                        exp += Math.round(
+                            (
+                                GRADES[gradeIndex].speed *
+                                (BUFF_BASE + input.buffs[buffIndex]) *
+                                EXP_SCALE
+                            ) / BUFF_BASE
                         );
 
                         nextNatural += NATURAL_INTERVAL;
@@ -2297,15 +2302,13 @@
                         }
                     }
 
+                    editor.append(stepper);
+
+                    // C-1: editor の外に配置
                     const itemSummary = element(
                         "span",
                         "",
                         "item-summary"
-                    );
-
-                    editor.append(
-                        stepper,
-                        itemSummary
                     );
 
                     const inactive = element(
@@ -2332,6 +2335,7 @@
                             "cell-title"
                         ),
                         editor,
+                        itemSummary,
                         inactive,
                         reverseCount,
                         firstUse
@@ -2404,6 +2408,9 @@
                     nodes.inactive.hidden = reverse || applicable;
                     nodes.reverseCount.hidden = !reverse;
                     nodes.firstUse.hidden = !reverse;
+
+                    // C-1: itemSummary の表示・非表示を独立して制御
+                    nodes.itemSummary.hidden = reverse;
 
                     nodes.inactive.textContent = index === LAST_GRADE
                         ? "計算対象上限では使用しません"
