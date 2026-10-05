@@ -368,6 +368,14 @@
             display: none;
         }
 
+        .row-disclosure-toggle {
+            display: none;
+        }
+
+        .row-disclosure-content {
+            min-width: 0;
+        }
+
         .event-log {
             max-height: 420px;
             overflow-y: auto;
@@ -456,7 +464,11 @@
             tbody tr {
                 display: grid;
                 grid-template-columns: repeat(2, minmax(0, 1fr));
-                gap: 12px;
+                grid-template-areas:
+                    "grade arrival"
+                    "basic basic"
+                    "items items";
+                gap: 10px;
                 margin-bottom: 14px;
                 padding: 14px;
                 border: 1px solid var(--border);
@@ -471,15 +483,108 @@
                 border: 0;
             }
 
-            tbody th {
-                grid-column: 1 / -1;
-                padding-bottom: 10px;
-                border-bottom: 1px solid var(--border);
+            tbody th.grade-cell {
+                grid-area: grade;
+                min-width: 0;
+                padding: 0;
+                border: 0;
+                align-self: start;
+            }
+
+            .grade-cell .grade-name {
+                margin: 0 0 5px;
+                font-size: 14px;
+                line-height: 1.5;
+                overflow-wrap: anywhere;
+            }
+
+            .grade-cell .grade-part {
+                display: block;
+            }
+
+            .grade-cell .grade-separator {
+                display: none;
+            }
+
+            .grade-cell .badge {
+                font-size: 11px;
             }
 
             .cell-title {
                 display: block;
                 margin-bottom: 6px;
+            }
+
+            tbody td.arrival-cell {
+                grid-area: arrival;
+                min-width: 0;
+                text-align: right;
+                align-self: start;
+            }
+
+            .arrival-cell .cell-title {
+                margin-bottom: 3px;
+                font-size: 12px;
+            }
+
+            .arrival-cell .arrival {
+                margin-top: 0;
+                font-size: 13px;
+                line-height: 1.5;
+                overflow-wrap: anywhere;
+            }
+
+            .arrival-cell .sub {
+                margin-top: 4px;
+                font-size: 11px;
+                overflow-wrap: anywhere;
+            }
+
+            tbody td.basic-cell {
+                grid-area: basic;
+                padding-top: 10px;
+                border-top: 1px solid var(--border);
+            }
+
+            tbody td.item-cell {
+                grid-area: items;
+                min-width: 0;
+            }
+
+            .row-disclosure-toggle {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 8px;
+                width: 100%;
+                min-height: 44px;
+                padding: 8px 12px;
+                text-align: left;
+                font-size: 13px;
+                font-weight: 700;
+            }
+
+            .row-disclosure-icon {
+                flex-shrink: 0;
+                color: var(--cyan);
+                transition: transform 0.15s ease;
+            }
+
+            .row-disclosure-toggle[aria-expanded="true"] .row-disclosure-icon {
+                transform: rotate(180deg);
+            }
+
+            .row-disclosure-content:not(.is-open) {
+                display: none;
+            }
+
+            .row-disclosure-content.is-open {
+                padding: 10px 2px 2px;
+            }
+
+            .row-disclosure-content .item-summary {
+                margin-top: 8px;
+                line-height: 1.6;
             }
         }
 
@@ -487,9 +592,11 @@
             .metrics {
                 grid-template-columns: 1fr;
             }
+        }
 
-            .item-cell {
-                grid-column: 1 / -1;
+        @media (prefers-reduced-motion: reduce) {
+            .row-disclosure-icon {
+                transition: none;
             }
         }
     </style>
@@ -689,7 +796,7 @@
 
             const LAST_GRADE = GRADES.length - 1;
             const GRADE_OPTIONS = GRADES.map((grade) => {
-                return [grade.id, `${grade.id}：${grade.name}`];
+                return [grade.id, grade.name];
             });
             const BUFF_SELECT_OPTIONS = BUFF_OPTIONS.map((value) => {
                 return [value, `${value}%`];
@@ -1049,7 +1156,7 @@
 
                     const itemCount = readInteger(
                         setting.itemCount,
-                        `階級${index}の追加アイテム数`,
+                        `${GRADES[index].name}の追加アイテム数`,
                         0,
                         MAX_ITEMS
                     );
@@ -2009,53 +2116,176 @@
 
                 rowNodes.length = 0;
 
+                function createDisclosure(title, id, gradeName) {
+                    const toggle = actionButton(
+                        "",
+                        "toggle-row-section",
+                        "row-disclosure-toggle"
+                    );
+
+                    const icon = element(
+                        "span",
+                        "▾",
+                        "row-disclosure-icon"
+                    );
+
+                    icon.setAttribute("aria-hidden", "true");
+
+                    toggle.append(
+                        element("span", title),
+                        icon
+                    );
+
+                    toggle.setAttribute("aria-controls", id);
+                    toggle.setAttribute("aria-expanded", "false");
+                    toggle.setAttribute(
+                        "aria-label",
+                        `${gradeName}の${title}`
+                    );
+
+                    const content = element(
+                        "div",
+                        null,
+                        "row-disclosure-content"
+                    );
+
+                    content.id = id;
+
+                    return {
+                        toggle,
+                        content
+                    };
+                }
+
                 for (const grade of GRADES) {
                     const setting = config.settings[grade.id];
                     const row = element("tr");
 
-                    const heading = element("th");
+                    const heading = element(
+                        "th",
+                        null,
+                        "grade-cell"
+                    );
+
                     heading.scope = "row";
 
-                    const badge = element("span", "未計算", "badge");
-                    const target = element("span", "目標階級", "sub");
+                    const gradeName = element(
+                        "span",
+                        null,
+                        "grade-name"
+                    );
+
+                    grade.name.split("/").forEach((name, index) => {
+                        if (index > 0) {
+                            gradeName.append(
+                                element("span", "/", "grade-separator")
+                            );
+                        }
+
+                        gradeName.append(
+                            element("span", name, "grade-part")
+                        );
+                    });
+
+                    const badge = element(
+                        "span",
+                        "未計算",
+                        "badge"
+                    );
+
+                    const target = element(
+                        "span",
+                        "目標階級",
+                        "sub"
+                    );
+
                     target.hidden = true;
 
                     heading.append(
-                        element("span", `#${grade.id}`, "muted"),
-                        element("span", grade.name, "grade-name"),
+                        gradeName,
                         badge,
                         target
                     );
 
-                    const speedCell = element("td");
-                    speedCell.append(
-                        element("span", "基本速度 / 次の必要量", "cell-title"),
+                    const speedCell = element(
+                        "td",
+                        null,
+                        "basic-cell"
+                    );
+
+                    const basicDisclosure = createDisclosure(
+                        "基礎データ",
+                        `grade-basic-${grade.id}`,
+                        grade.name
+                    );
+
+                    basicDisclosure.content.append(
                         element(
                             "span",
-                            `${formatNumber(grade.speed)} / 8秒`
+                            `基本速度：${formatNumber(grade.speed)} / 8秒`
                         ),
                         element(
                             "span",
                             grade.id === LAST_GRADE
-                                ? "次：計算対象外"
-                                : `次：${formatNumber(grade.req)}`,
+                                ? "次の必要量：計算対象外"
+                                : `次の必要量：${formatNumber(grade.req)}`,
                             "sub"
                         )
                     );
 
-                    const timeCell = element("td");
-                    const arrival = element("span", "—", "arrival");
-                    const duration = element("span", "—", "sub");
+                    speedCell.append(
+                        basicDisclosure.toggle,
+                        basicDisclosure.content
+                    );
+
+                    const timeCell = element(
+                        "td",
+                        null,
+                        "arrival-cell"
+                    );
+
+                    const arrival = element(
+                        "span",
+                        "—",
+                        "arrival"
+                    );
+
+                    const duration = element(
+                        "span",
+                        "—",
+                        "sub"
+                    );
 
                     timeCell.append(
-                        element("span", "到達予想 / 所要時間", "cell-title"),
+                        element(
+                            "span",
+                            "到達時刻",
+                            "cell-title"
+                        ),
                         arrival,
                         duration
                     );
 
-                    const itemCell = element("td", null, "item-cell");
+                    const itemCell = element(
+                        "td",
+                        null,
+                        "item-cell"
+                    );
+
+                    const itemDisclosure = createDisclosure(
+                        "アイテム設定・使用数",
+                        `grade-items-${grade.id}`,
+                        grade.name
+                    );
+
                     const editor = element("div");
-                    const stepper = element("div", null, "stepper");
+
+                    const stepper = element(
+                        "div",
+                        null,
+                        "stepper"
+                    );
+
                     const input = numberControl(
                         setting,
                         "itemCount",
@@ -2064,15 +2294,21 @@
                     );
 
                     input.id = `items-${grade.id}`;
+
                     input.setAttribute(
                         "aria-label",
                         `${grade.name}で追加するアイテム数`
                     );
 
                     for (const [delta, text] of [[-1, "−"], [1, "＋"]]) {
-                        const button = actionButton(text, "adjust-items");
+                        const button = actionButton(
+                            text,
+                            "adjust-items"
+                        );
+
                         button.dataset.grade = String(grade.id);
                         button.dataset.delta = String(delta);
+
                         button.setAttribute(
                             "aria-label",
                             `${grade.name}の追加アイテムを1個` +
@@ -2086,23 +2322,44 @@
                         }
                     }
 
-                    const itemSummary = element("span", "", "item-summary");
-                    editor.append(stepper, itemSummary);
+                    const itemSummary = element(
+                        "span",
+                        "",
+                        "item-summary"
+                    );
 
-                    const inactive = element("span", "", "muted");
-                    const reverseCount = element("strong", "—");
-                    const firstUse = element("span", "", "sub");
+                    editor.append(
+                        stepper,
+                        itemSummary
+                    );
 
-                    itemCell.append(
-                        element(
-                            "span",
-                            "アイテム設定 / 使用・引継ぎ",
-                            "cell-title"
-                        ),
+                    const inactive = element(
+                        "span",
+                        "",
+                        "muted"
+                    );
+
+                    const reverseCount = element(
+                        "strong",
+                        "—"
+                    );
+
+                    const firstUse = element(
+                        "span",
+                        "",
+                        "sub"
+                    );
+
+                    itemDisclosure.content.append(
                         editor,
                         inactive,
                         reverseCount,
                         firstUse
+                    );
+
+                    itemCell.append(
+                        itemDisclosure.toggle,
+                        itemDisclosure.content
                     );
 
                     row.append(
@@ -2551,6 +2808,27 @@
                 }
 
                 switch (button.dataset.action) {
+                    case "toggle-row-section": {
+                        const contentId = button.getAttribute("aria-controls");
+                        const content = contentId ? $(contentId) : null;
+
+                        if (!content) {
+                            return;
+                        }
+
+                        const open = (
+                            button.getAttribute("aria-expanded") !== "true"
+                        );
+
+                        button.setAttribute(
+                            "aria-expanded",
+                            String(open)
+                        );
+
+                        content.classList.toggle("is-open", open);
+                        break;
+                    }
+
                     case "recalculate":
                         invalidate(0);
                         break;
