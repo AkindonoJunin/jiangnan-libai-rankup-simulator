@@ -114,9 +114,6 @@
         }
 
         header {
-            position: sticky;
-            top: 0;
-            z-index: 10;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -149,16 +146,15 @@
 
         #settings-panel {
             position: sticky;
-            top: 96px;
-            max-height: calc(100vh - 114px);
-            max-height: calc(100dvh - 114px);
+            top: 20px;
+            max-height: calc(100vh - 40px);
+            max-height: calc(100dvh - 40px);
             overflow-y: auto;
             scrollbar-gutter: stable;
         }
 
         main {
             min-width: 0;
-            scroll-margin-top: 96px;
         }
 
         .panel,
@@ -325,20 +321,6 @@
             display: block;
             margin: 5px 0;
             font-weight: 700;
-        }
-
-        .badge {
-            display: inline-block;
-            padding: 2px 7px;
-            border: 1px solid var(--border);
-            border-radius: 999px;
-            color: var(--muted);
-            font-size: 12px;
-        }
-
-        .reached {
-            color: var(--green);
-            border-color: #34795f;
         }
 
         .item-cell {
@@ -511,12 +493,6 @@
 
             .grade-cell .grade-separator {
                 display: none;
-            }
-
-            .grade-cell .badge {
-                padding: 1px 6px;
-                font-size: 10px;
-                line-height: 1.5;
             }
 
             .grade-cell .sub {
@@ -2189,12 +2165,6 @@
                         );
                     });
 
-                    const badge = element(
-                        "span",
-                        "未計算",
-                        "badge"
-                    );
-
                     const target = element(
                         "span",
                         "目標階級",
@@ -2204,7 +2174,6 @@
 
                     heading.append(
                         gradeName,
-                        badge,
                         target
                     );
 
@@ -2409,7 +2378,6 @@
 
                     rowNodes.push({
                         row,
-                        badge,
                         target,
                         arrival,
                         duration,
@@ -2553,13 +2521,11 @@
                 }
 
                 rowNodes.forEach((nodes, index) => {
-                    nodes.badge.classList.remove("reached");
                     nodes.itemSummary.textContent = "";
                     nodes.reverseCount.textContent = "—";
                     nodes.firstUse.textContent = "";
 
                     if (!result) {
-                        nodes.badge.textContent = "未計算";
                         nodes.arrival.textContent = "—";
                         nodes.duration.textContent = "—";
                         return;
@@ -2568,16 +2534,11 @@
                     const reachedAt = result.reachedTimes[index];
 
                     if (index < result.startGrade) {
-                        nodes.badge.textContent = "再開前";
                         nodes.arrival.textContent = "到達時刻不明";
                         nodes.duration.textContent = "計算対象外";
                     } else if (index === result.startGrade) {
                         const resumed = result.startMode === "resume";
 
-                        nodes.badge.textContent = resumed
-                            ? "再開階級"
-                            : "開始階級";
-                        nodes.badge.classList.add("reached");
                         nodes.arrival.textContent = resumed
                             ? "到達時刻不明"
                             : formatTime(result.startTime);
@@ -2585,7 +2546,6 @@
                             ? `再開：${formatTime(result.startTime)}`
                             : "開始時点";
                     } else if (reachedAt === null) {
-                        nodes.badge.textContent = "未到達";
                         nodes.arrival.textContent = "未到達";
                         nodes.duration.textContent = "—";
                     } else {
@@ -2597,8 +2557,6 @@
                             index === result.startGrade + 1
                         );
 
-                        nodes.badge.textContent = "到達";
-                        nodes.badge.classList.add("reached");
                         nodes.arrival.textContent = formatTime(reachedAt);
                         nodes.duration.textContent = (
                             (fromResume ? "再開から " : "前階級から ") +
