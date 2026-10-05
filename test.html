@@ -364,15 +364,13 @@
         }
 
         .cell-title,
-        .mobile-only {
+        .mobile-only,
+        .row-details-toggle {
             display: none;
         }
 
-        .row-disclosure-toggle {
-            display: none;
-        }
-
-        .row-disclosure-content {
+        .arrival-layout,
+        .arrival-info {
             min-width: 0;
         }
 
@@ -417,6 +415,12 @@
                 font-size: 16px;
             }
 
+            #settings-toggle {
+                flex-shrink: 0;
+                font-size: 13px;
+                white-space: nowrap;
+            }
+
             .mobile-only {
                 display: block;
             }
@@ -451,6 +455,7 @@
             tbody {
                 display: block;
                 min-width: 0;
+                background: transparent;
             }
 
             thead {
@@ -463,16 +468,21 @@
 
             tbody tr {
                 display: grid;
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-                grid-template-areas:
-                    "grade arrival"
-                    "basic basic"
-                    "items items";
-                gap: 10px;
-                margin-bottom: 14px;
-                padding: 14px;
+                grid-template-columns:
+                    minmax(0, 1fr)
+                    minmax(0, 1.5fr);
+                align-items: start;
+                column-gap: 8px;
+                row-gap: 0;
+                margin-bottom: 8px;
+                padding: 10px;
                 border: 1px solid var(--border);
-                border-radius: 12px;
+                border-radius: 10px;
+                background: var(--panel);
+            }
+
+            tbody tr.target-row {
+                background: #14312e;
             }
 
             tbody th,
@@ -484,17 +494,14 @@
             }
 
             tbody th.grade-cell {
-                grid-area: grade;
-                min-width: 0;
-                padding: 0;
-                border: 0;
-                align-self: start;
+                grid-column: 1;
+                grid-row: 1;
             }
 
             .grade-cell .grade-name {
-                margin: 0 0 5px;
-                font-size: 14px;
-                line-height: 1.5;
+                margin: 0 0 4px;
+                font-size: 13px;
+                line-height: 1.45;
                 overflow-wrap: anywhere;
             }
 
@@ -507,7 +514,30 @@
             }
 
             .grade-cell .badge {
+                padding: 1px 6px;
+                font-size: 10px;
+                line-height: 1.5;
+            }
+
+            .grade-cell .sub {
+                margin-top: 3px;
                 font-size: 11px;
+            }
+
+            tbody td.arrival-cell {
+                grid-column: 2;
+                grid-row: 1;
+            }
+
+            .arrival-layout {
+                display: grid;
+                grid-template-columns: minmax(0, 1fr) 44px;
+                align-items: start;
+                gap: 6px;
+            }
+
+            .arrival-info {
+                text-align: right;
             }
 
             .cell-title {
@@ -515,74 +545,88 @@
                 margin-bottom: 6px;
             }
 
-            tbody td.arrival-cell {
-                grid-area: arrival;
-                min-width: 0;
-                text-align: right;
-                align-self: start;
+            .arrival-info .cell-title {
+                margin-bottom: 2px;
+                font-size: 11px;
+                line-height: 1.4;
             }
 
-            .arrival-cell .cell-title {
-                margin-bottom: 3px;
-                font-size: 12px;
-            }
-
-            .arrival-cell .arrival {
+            .arrival-info .arrival {
                 margin-top: 0;
-                font-size: 13px;
+                font-size: 12px;
                 line-height: 1.5;
                 overflow-wrap: anywhere;
             }
 
-            .arrival-cell .sub {
-                margin-top: 4px;
-                font-size: 11px;
+            .arrival-info .sub {
+                margin-top: 3px;
+                font-size: 10px;
+                line-height: 1.4;
                 overflow-wrap: anywhere;
             }
 
-            tbody td.basic-cell {
-                grid-area: basic;
+            .row-details-toggle {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: 1px;
+                width: 44px;
+                min-width: 44px;
+                min-height: 44px;
+                padding: 4px;
+                font-size: 11px;
+                font-weight: 700;
+                line-height: 1.2;
+                white-space: nowrap;
+            }
+
+            .row-details-toggle[aria-expanded="true"] {
+                border-color: var(--cyan);
+                background: #243d57;
+            }
+
+            .row-details-icon {
+                display: block;
+                color: var(--cyan);
+                font-size: 12px;
+                line-height: 1;
+                transition: transform 0.15s ease;
+            }
+
+            .row-details-toggle[aria-expanded="true"] .row-details-icon {
+                transform: rotate(180deg);
+            }
+
+            tbody td.basic-cell,
+            tbody td.item-cell {
+                display: none;
+            }
+
+            tbody tr.is-expanded > td.basic-cell {
+                display: block;
+                grid-column: 1 / -1;
+                grid-row: 2;
+                margin-top: 10px;
                 padding-top: 10px;
                 border-top: 1px solid var(--border);
             }
 
-            tbody td.item-cell {
-                grid-area: items;
-                min-width: 0;
+            tbody tr.is-expanded > td.item-cell {
+                display: block;
+                grid-column: 1 / -1;
+                grid-row: 3;
+                margin-top: 10px;
+                padding-top: 10px;
+                border-top: 1px solid var(--border);
             }
 
-            .row-disclosure-toggle {
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                gap: 8px;
-                width: 100%;
-                min-height: 44px;
-                padding: 8px 12px;
-                text-align: left;
-                font-size: 13px;
+            .basic-cell .cell-title,
+            .item-cell .cell-title {
                 font-weight: 700;
             }
 
-            .row-disclosure-icon {
-                flex-shrink: 0;
-                color: var(--cyan);
-                transition: transform 0.15s ease;
-            }
-
-            .row-disclosure-toggle[aria-expanded="true"] .row-disclosure-icon {
-                transform: rotate(180deg);
-            }
-
-            .row-disclosure-content:not(.is-open) {
-                display: none;
-            }
-
-            .row-disclosure-content.is-open {
-                padding: 10px 2px 2px;
-            }
-
-            .row-disclosure-content .item-summary {
+            .item-cell .item-summary {
                 margin-top: 8px;
                 line-height: 1.6;
             }
@@ -595,7 +639,7 @@
         }
 
         @media (prefers-reduced-motion: reduce) {
-            .row-disclosure-icon {
+            .row-details-icon {
                 transition: none;
             }
         }
@@ -2116,47 +2160,6 @@
 
                 rowNodes.length = 0;
 
-                function createDisclosure(title, id, gradeName) {
-                    const toggle = actionButton(
-                        "",
-                        "toggle-row-section",
-                        "row-disclosure-toggle"
-                    );
-
-                    const icon = element(
-                        "span",
-                        "▾",
-                        "row-disclosure-icon"
-                    );
-
-                    icon.setAttribute("aria-hidden", "true");
-
-                    toggle.append(
-                        element("span", title),
-                        icon
-                    );
-
-                    toggle.setAttribute("aria-controls", id);
-                    toggle.setAttribute("aria-expanded", "false");
-                    toggle.setAttribute(
-                        "aria-label",
-                        `${gradeName}の${title}`
-                    );
-
-                    const content = element(
-                        "div",
-                        null,
-                        "row-disclosure-content"
-                    );
-
-                    content.id = id;
-
-                    return {
-                        toggle,
-                        content
-                    };
-                }
-
                 for (const grade of GRADES) {
                     const setting = config.settings[grade.id];
                     const row = element("tr");
@@ -2166,7 +2169,6 @@
                         null,
                         "grade-cell"
                     );
-
                     heading.scope = "row";
 
                     const gradeName = element(
@@ -2198,7 +2200,6 @@
                         "目標階級",
                         "sub"
                     );
-
                     target.hidden = true;
 
                     heading.append(
@@ -2212,14 +2213,14 @@
                         null,
                         "basic-cell"
                     );
+                    speedCell.id = `grade-basic-${grade.id}`;
 
-                    const basicDisclosure = createDisclosure(
-                        "基礎データ",
-                        `grade-basic-${grade.id}`,
-                        grade.name
-                    );
-
-                    basicDisclosure.content.append(
+                    speedCell.append(
+                        element(
+                            "span",
+                            "基礎データ",
+                            "cell-title"
+                        ),
                         element(
                             "span",
                             `基本速度：${formatNumber(grade.speed)} / 8秒`
@@ -2233,15 +2234,22 @@
                         )
                     );
 
-                    speedCell.append(
-                        basicDisclosure.toggle,
-                        basicDisclosure.content
-                    );
-
                     const timeCell = element(
                         "td",
                         null,
                         "arrival-cell"
+                    );
+
+                    const arrivalLayout = element(
+                        "div",
+                        null,
+                        "arrival-layout"
+                    );
+
+                    const arrivalInfo = element(
+                        "div",
+                        null,
+                        "arrival-info"
                     );
 
                     const arrival = element(
@@ -2256,7 +2264,7 @@
                         "sub"
                     );
 
-                    timeCell.append(
+                    arrivalInfo.append(
                         element(
                             "span",
                             "到達時刻",
@@ -2266,20 +2274,50 @@
                         duration
                     );
 
+                    const detailsButton = actionButton(
+                        "",
+                        "toggle-row-details",
+                        "row-details-toggle"
+                    );
+
+                    detailsButton.dataset.grade = String(grade.id);
+                    detailsButton.setAttribute("aria-expanded", "false");
+                    detailsButton.setAttribute(
+                        "aria-controls",
+                        `grade-basic-${grade.id} grade-items-${grade.id}`
+                    );
+                    detailsButton.setAttribute(
+                        "aria-label",
+                        `${grade.name}の詳細：基礎データとアイテム設定`
+                    );
+
+                    const detailsIcon = element(
+                        "span",
+                        "▾",
+                        "row-details-icon"
+                    );
+                    detailsIcon.setAttribute("aria-hidden", "true");
+
+                    detailsButton.append(
+                        element("span", "詳細"),
+                        detailsIcon
+                    );
+
+                    arrivalLayout.append(
+                        arrivalInfo,
+                        detailsButton
+                    );
+
+                    timeCell.append(arrivalLayout);
+
                     const itemCell = element(
                         "td",
                         null,
                         "item-cell"
                     );
-
-                    const itemDisclosure = createDisclosure(
-                        "アイテム設定・使用数",
-                        `grade-items-${grade.id}`,
-                        grade.name
-                    );
+                    itemCell.id = `grade-items-${grade.id}`;
 
                     const editor = element("div");
-
                     const stepper = element(
                         "div",
                         null,
@@ -2294,7 +2332,6 @@
                     );
 
                     input.id = `items-${grade.id}`;
-
                     input.setAttribute(
                         "aria-label",
                         `${grade.name}で追加するアイテム数`
@@ -2308,7 +2345,6 @@
 
                         button.dataset.grade = String(grade.id);
                         button.dataset.delta = String(delta);
-
                         button.setAttribute(
                             "aria-label",
                             `${grade.name}の追加アイテムを1個` +
@@ -2350,16 +2386,16 @@
                         "sub"
                     );
 
-                    itemDisclosure.content.append(
+                    itemCell.append(
+                        element(
+                            "span",
+                            "アイテム設定 / 使用・引継ぎ",
+                            "cell-title"
+                        ),
                         editor,
                         inactive,
                         reverseCount,
                         firstUse
-                    );
-
-                    itemCell.append(
-                        itemDisclosure.toggle,
-                        itemDisclosure.content
                     );
 
                     row.append(
@@ -2377,6 +2413,7 @@
                         target,
                         arrival,
                         duration,
+                        detailsButton,
                         editor,
                         input,
                         inactive,
@@ -2776,6 +2813,20 @@
                 }
             }
 
+            function setRowDetailsOpen(index, open) {
+                const nodes = rowNodes[index];
+
+                if (!nodes) {
+                    return;
+                }
+
+                nodes.row.classList.toggle("is-expanded", open);
+                nodes.detailsButton.setAttribute(
+                    "aria-expanded",
+                    String(open)
+                );
+            }
+
             function handleInput(event) {
                 const binding = bindings.get(event.target);
 
@@ -2808,24 +2859,27 @@
                 }
 
                 switch (button.dataset.action) {
-                    case "toggle-row-section": {
-                        const contentId = button.getAttribute("aria-controls");
-                        const content = contentId ? $(contentId) : null;
+                    case "toggle-row-details": {
+                        const index = Number(button.dataset.grade);
 
-                        if (!content) {
+                        if (
+                            !Number.isInteger(index) ||
+                            index < 0 ||
+                            index > LAST_GRADE
+                        ) {
                             return;
                         }
 
-                        const open = (
-                            button.getAttribute("aria-expanded") !== "true"
-                        );
+                        const nodes = rowNodes[index];
 
-                        button.setAttribute(
-                            "aria-expanded",
-                            String(open)
-                        );
+                        if (!nodes) {
+                            return;
+                        }
 
-                        content.classList.toggle("is-open", open);
+                        setRowDetailsOpen(
+                            index,
+                            !nodes.row.classList.contains("is-expanded")
+                        );
                         break;
                     }
 
