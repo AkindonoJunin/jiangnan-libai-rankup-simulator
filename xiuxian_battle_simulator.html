@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>修仙・歴練 戦闘シミュレーター (A/B比較対応版)</title>
+<style>
+  :root {
+    --bg-color: #0f1218;
+    --card-bg: #181c26;
+    --card-sub-bg: #1f2533;
+    --border-color: #2b3347;
+    --accent-gold: #d4a359;
+    --accent-gold-hover: #b8863b;
+    --accent-blue: #4a9eff;
+    --text-main: #e8ecf4;
+    --text-muted: #8c96ac;
+    --danger: #f05a5b;
+    --success: #38c172;
+    --warning: #f59f00;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    padding: 16px;
+    line-height: 1.5;
+  }
+  .container { max-width: 1280px; margin: 0 auto; }
+  header { text-align: center; margin-bottom: 20px; }
+  h1 { color: var(--accent-gold); font-size: 1.8rem; letter-spacing: 1px; }
+  .subtitle { color: var(--text-muted); font-size: 0.85rem; margin-top: 4px; }
+
+  /* Grid Layouts */
+  .players-compare-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  @media (max-width: 680px) {
+    .players-compare-container { grid-template-columns: 1fr; }
+  }
+
+  .card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+  }
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 10px;
+    margin-bottom: 12px;
+  }
+  .card-title {
+    font-weight: 700;
+    font-size: 1.05rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .title-gold { color: var(--accent-gold); }
+  .title-blue { color: var(--accent-blue); }
+
+  /* Forms & Inputs: 2 columns */
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px 12px;
+  }
+  .form-group {
+    display: flex;
+    flex-direction: column;
+  }
+  .form-group label {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-bottom: 3px;
+    font-weight: 500;
+  }
+  .form-group input, .form-group select {
+    background: #11141c;
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+    padding: 7px 10px;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    width: 100%;
+  }
+  .form-group input:focus, .form-group select:focus {
+    border-color: var(--accent-gold);
+    outline: none;
+  }
+
+  /* Stage selector */
+  .stage-select-box {
+    background: var(--card-sub-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 12px 14px;
+    margin-bottom: 14px;
+  }
+  .stage-select-grid {
+    display: grid;
+    grid-template-columns: 140px 180px 1fr;
+    gap: 12px;
+    align-items: flex-end;
+  }
+  @media (max-width: 768px) {
+    .stage-select-grid { grid-template-columns: 1fr 1fr; }
+    .stage-select-grid .span-mobile { grid-column: 1 / -1; }
+  }
+
+  .enemy-block {
+    background: rgba(0,0,0,0.25);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 10px;
+    position: relative;
+  }
+  .enemy-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  /* Buttons */
+  .btn {
+    cursor: pointer;
+    border: none;
+    border-radius: 4px;
+    padding: 6px 12px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+  }
+  .btn-sm { padding: 4px 8px; font-size: 0.75rem; }
+  .btn-primary { background: var(--accent-gold); color: #111; }
+  .btn-primary:hover { background: var(--accent-gold-hover); }
+  .btn-secondary { background: #283042; color: var(--text-main); }
+  .btn-secondary:hover { background: #36425a; }
+  .btn-danger { background: var(--danger); color: #fff; }
+
+  .controls-bar {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    align-items: flex-end;
+    justify-content: space-between;
+  }
+  .calc-btn-container { flex: 1 1 220px; }
+  .calc-btn {
+    width: 100%;
+    padding: 12px;
+    font-size: 1.05rem;
+    font-weight: bold;
+    border-radius: 6px;
+    background: linear-gradient(135deg, #d4a359, #b8863b);
+    color: #111;
+    box-shadow: 0 4px 12px rgba(212,163,89,0.25);
+  }
+  .calc-btn:hover {
+    background: linear-gradient(135deg, #e6b366, #c99342);
+  }
+
+  /* Comparison Result Card */
+  .compare-result-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  }
+  .compare-grid {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 16px;
+    align-items: stretch;
+    margin-top: 14px;
+  }
+  @media (max-width: 768px) {
+    .compare-grid { grid-template-columns: 1fr; }
+    .vs-divider { display: none; }
+  }
+  .side-card {
+    background: var(--card-sub-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 16px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+  }
+  .side-card.winner {
+    border-color: var(--accent-gold);
+    box-shadow: 0 0 14px rgba(212, 163, 89, 0.3);
+  }
+  .vs-divider {
+    font-size: 1.4rem;
+    font-weight: 900;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 8px;
+  }
+  .win-rate-title { font-size: 0.82rem; color: var(--text-muted); }
+  .win-rate-num { font-size: 2.7rem; font-weight: 800; margin: 4px 0; }
+  .diff-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: bold;
+    margin: 0 auto 10px auto;
+  }
+  .diff-plus { background: rgba(56, 193, 114, 0.2); color: var(--success); }
+  .diff-minus { background: rgba(240, 90, 91, 0.2); color: var(--danger); }
+  .diff-even { background: rgba(140, 150, 172, 0.2); color: var(--text-muted); }
+
+  /* Detailed metrics grid */
+  .stats-section-title {
+    font-size: 0.78rem;
+    font-weight: bold;
+    color: var(--accent-gold);
+    text-align: left;
+    margin-top: 10px;
+    padding-bottom: 4px;
+    border-bottom: 1px dashed var(--border-color);
+  }
+  .stats-sub-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    text-align: left;
+    margin-top: 8px;
+  }
+  .stats-sub-item { display: flex; flex-direction: column; }
+  .stats-sub-label { font-size: 0.72rem; color: var(--text-muted); }
+  .stats-sub-val { font-size: 0.95rem; font-weight: bold; }
+
+  .trials-bench-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    text-align: center;
+    margin-top: 8px;
+  }
+  .bench-item {
+    background: rgba(0,0,0,0.25);
+    border-radius: 4px;
+    padding: 6px 2px;
+  }
+  .bench-label { font-size: 0.68rem; color: var(--text-muted); }
+  .bench-val { font-size: 0.95rem; font-weight: bold; color: var(--text-main); margin-top: 2px; }
+
+  .verdict-box {
+    text-align: center;
+    margin-top: 16px;
+    padding: 14px;
+    border-radius: 6px;
+    background: rgba(0,0,0,0.3);
+    font-size: 1rem;
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <h1>修仙・歴練 戦闘シミュレーター</h1>
+    <div class="subtitle">ステータス2構成並行比較 (A/Bテスト) ＆ 階層・ステージ自動更新対応</div>
+  </header>
+
+  <!-- 上部：敵選択セクション -->
+  <div class="card" style="margin-bottom: 16px;">
+    <div class="card-header">
+      <span class="card-title title-gold">敵陣営設定</span>
+      <div>
+        <button class="btn btn-sm btn-secondary" onclick="addEnemy()">+ 敵追加</button>
+      </div>
+    </div>
+
+    <!-- 階層・ステージ選択ボックス（選択時に即時自動更新） -->
+    <div class="stage-select-box">
+      <div style="font-size: 0.85rem; font-weight: bold; color: var(--accent-gold); margin-bottom: 8px;">
+        ステージ敵データ選択（変更すると敵情報が自動更新されます）
+      </div>
+      <div class="stage-select-grid">
+        <div class="form-group">
+          <label>階層 (1〜5層)</label>
+          <select id="floorSelect" onchange="onFloorOrStageChange()">
+            <option value="1">簡単</option>
+            <option value="2">上等</option>
+            <option value="3">精鋭</option>
+            <option value="4">困難</option>
+            <option value="5">煉獄</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>ステージ (6ステージ)</label>
+          <select id="stageNameSelect" onchange="onFloorOrStageChange()">
+            <option value="廬山の滝">廬山の滝</option>
+            <option value="蜀の道">蜀の道</option>
+            <option value="広寒天宮">広寒天宮</option>
+            <option value="蓬莱仙島">蓬莱仙島</option>
+            <option value="天姥山">天姥山</option>
+            <option value="崑崙">崑崙</option>
+          </select>
+        </div>
+        <div class="form-group span-mobile">
+          <label>戦闘マス（BOSS / 通常敵）</label>
+          <select id="battleSelect" onchange="onBattleSelectChange()"></select>
+        </div>
+      </div>
+      <div id="battleInfoTip" style="font-size: 0.78rem; color: var(--text-muted); margin-top: 8px;"></div>
+    </div>
+
+    <div id="enemyList"></div>
+  </div>
+
+  <!-- プレイヤーA / B 並行比較セクション -->
+  <div class="card" style="margin-bottom: 16px;">
+    <div class="card-header">
+      <span class="card-title title-gold">プレイヤー ステータス比較設定</span>
+      <div style="display: flex; gap: 6px;">
+        <button class="btn btn-sm btn-secondary" onclick="copyAtoB()">AをBにコピー</button>
+        <button class="btn btn-sm btn-secondary" onclick="copyBtoA()">BをAにコピー</button>
+      </div>
+    </div>
+
+    <div class="players-compare-container">
+      <!-- 構成 A -->
+      <div class="card" style="border-color: #59441f;">
+        <div class="card-header">
+          <span class="card-title title-gold">構成 A</span>
+          <span style="font-size: 0.75rem; color: var(--text-muted);">ベース構成</span>
+        </div>
+        <!-- 順序:
+             攻撃 (ATK), HP (体力)
+             吸血, 攻撃速度
+             会心, 強靭
+             回避, 命中
+        -->
+        <div class="form-grid">
+          <div class="form-group"><label>攻撃 (ATK)</label><input type="number" id="pA_atk" value="2173"></div>
+          <div class="form-group"><label>HP (体力)</label><input type="number" id="pA_hp" value="20771"></div>
+
+          <div class="form-group"><label>吸血 (%)</label><input type="number" step="0.1" id="pA_vampire" value="29.3"></div>
+          <div class="form-group"><label>攻撃速度 (%)</label><input type="number" step="0.1" id="pA_speed" value="120.0"></div>
+
+          <div class="form-group"><label>会心 (%)</label><input type="number" step="0.1" id="pA_crit" value="15.0"></div>
+          <div class="form-group"><label>強靭 (%)</label><input type="number" step="0.1" id="pA_tenacity" value="10.0"></div>
+
+          <div class="form-group"><label>回避 (%)</label><input type="number" step="0.1" id="pA_dodge" value="25.0"></div>
+          <div class="form-group"><label>命中 (%)</label><input type="number" step="0.1" id="pA_hit" value="15.0"></div>
+        </div>
+      </div>
+
+      <!-- 構成 B -->
+      <div class="card" style="border-color: #21436e;">
+        <div class="card-header">
+          <span class="card-title title-blue">構成 B</span>
+          <span style="font-size: 0.75rem; color: var(--text-muted);">比較対象</span>
+        </div>
+        <div class="form-grid">
+          <div class="form-group"><label>攻撃 (ATK)</label><input type="number" id="pB_atk" value="2300"></div>
+          <div class="form-group"><label>HP (体力)</label><input type="number" id="pB_hp" value="20771"></div>
+
+          <div class="form-group"><label>吸血 (%)</label><input type="number" step="0.1" id="pB_vampire" value="15.0"></div>
+          <div class="form-group"><label>攻撃速度 (%)</label><input type="number" step="0.1" id="pB_speed" value="120.0"></div>
+
+          <div class="form-group"><label>会心 (%)</label><input type="number" step="0.1" id="pB_crit" value="30.0"></div>
+          <div class="form-group"><label>強靭 (%)</label><input type="number" step="0.1" id="pB_tenacity" value="10.0"></div>
+
+          <div class="form-group"><label>回避 (%)</label><input type="number" step="0.1" id="pB_dodge" value="25.0"></div>
+          <div class="form-group"><label>命中 (%)</label><input type="number" step="0.1" id="pB_hit" value="15.0"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- シミュレーション制御バー -->
+  <div class="controls-bar">
+    <div class="form-group" style="min-width: 130px;">
+      <label>試行回数 (各構成)</label>
+      <select id="simTrials">
+        <option value="1000">1,000回 (高速)</option>
+        <option value="5000">5,000回</option>
+        <option value="10000" selected>10,000回 (推奨)</option>
+        <option value="30000">30,000回 (高精度)</option>
+      </select>
+    </div>
+    <div class="form-group" style="min-width: 170px;">
+      <label>絶技 (怒り1000で全体攻撃)</label>
+      <select id="autoSkill">
+        <option value="true" selected>自動発動 (全体攻撃)</option>
+        <option value="false">温存 (通常攻撃のみ)</option>
+      </select>
+    </div>
+    <div class="form-group" style="min-width: 190px;">
+      <label>通常攻撃ターゲット優先</label>
+      <select id="targetPriority">
+        <option value="boss" selected>ボス優先 (最大HPが最大)</option>
+        <option value="minMaxHp">雑魚優先 (最大HPが最小)</option>
+        <option value="minCurHp">瀕死優先 (現在HPが最小)</option>
+      </select>
+    </div>
+    <div class="calc-btn-container">
+      <button class="btn calc-btn" onclick="runCompareSimulation()">A / B 比較シミュレーション実行</button>
+    </div>
+  </div>
+
+  <!-- 比較結果表示カード -->
+  <div class="compare-result-card" id="compareResultCard" style="display: none;">
+    <div style="text-align: center; font-size: 1.15rem; font-weight: bold; color: var(--accent-gold);">
+      シミュレーション比較結果
+    </div>
+
+    <div class="compare-grid">
+      <!-- 構成 A 結果 -->
+      <div class="side-card" id="cardA">
+        <div style="font-weight: bold; color: var(--accent-gold); font-size: 1.1rem;">構成 A</div>
+        <div class="win-rate-title">突破率 (1回あたりの勝率)</div>
+        <div class="win-rate-num" id="winRateA">0.00%</div>
+        <div class="diff-badge" id="diffBadgeA">-</div>
+
+        <div class="stats-section-title">突破確率・試行回数目安</div>
+        <div class="stats-sub-grid">
+          <div class="stats-sub-item">
+            <span class="stats-sub-label">100回以内突破率</span>
+            <span class="stats-sub-val" id="win100RateA" style="color: var(--accent-gold);">-</span>
+          </div>
+          <div class="stats-sub-item">
+            <span class="stats-sub-label">平均時間 (勝利時)</span>
+            <span class="stats-sub-val" id="avgTimeA">-</span>
+          </div>
+        </div>
+
+        <div style="margin-top: 8px; text-align: left;">
+          <span class="stats-sub-label">指定確率での必要試行回数目安:</span>
+          <div class="trials-bench-grid">
+            <div class="bench-item"><div class="bench-label">50%</div><div class="bench-val" id="n50A">-</div></div>
+            <div class="bench-item"><div class="bench-label">80%</div><div class="bench-val" id="n80A">-</div></div>
+            <div class="bench-item"><div class="bench-label">90%</div><div class="bench-val" id="n90A">-</div></div>
+            <div class="bench-item"><div class="bench-label">99%</div><div class="bench-val" id="n99A">-</div></div>
+          </div>
+        </div>
+
+        <div class="stats-section-title">戦闘統計</div>
+        <div class="stats-sub-grid">
+          <div class="stats-sub-item">
+            <span class="stats-sub-label">勝利数 / 試行数</span>
+            <span class="stats-sub-val" id="winCountA">-</span>
+          </div>
+          <div class="stats-sub-item">
+            <span class="stats-sub-label">平均残りHP (残率)</span>
+            <span class="stats-sub-val" id="avgHpA">-</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- VS 区切り -->
+      <div class="vs-divider">VS</div>
+
+      <!-- 構成 B 結果 -->
+      <div class="side-card" id="cardB">
+        <div style="font-weight: bold; color: var(--accent-blue); font-size: 1.1rem;">構成 B</div>
+        <div class="win-rate-title">突破率 (1回あたりの勝率)</div>
+        <div class="win-rate-num" id="winRateB">0.00%</div>
+        <div class="diff-badge" id="diffBadgeB">-</div>
+
+        <div class="stats-section-title">突破確率・試行回数目安</div>
+        <div class="stats-sub-grid">
+          <div class="stats-sub-item">
+            <span class="stats-sub-label">100回以内突破率</span>
+            <span class="stats-sub-val" id="win100RateB" style="color: var(--accent-blue);">-</span>
+          </div>
+          <div class="stats-sub-item">
+            <span class="stats-sub-label">平均時間 (勝利時)</span>
+            <span class="stats-sub-val" id="avgTimeB">-</span>
+          </div>
+        </div>
+
+        <div style="margin-top: 8px; text-align: left;">
+          <span class="stats-sub-label">指定確率での必要試行回数目安:</span>
+          <div class="trials-bench-grid">
+            <div class="bench-item"><div class="bench-label">50%</div><div class="bench-val" id="n50B">-</div></div>
+            <div class="bench-item"><div class="bench-label">80%</div><div class="bench-val" id="n80B">-</div></div>
+            <div class="bench-item"><div class="bench-label">90%</div><div class="bench-val" id="n90B">-</div></div>
+            <div class="bench-item"><div class="bench-label">99%</div><div class="bench-val" id="n99B">-</div></div>
+          </div>
+        </div>
+
+        <div class="stats-section-title">戦闘統計</div>
+        <div class="stats-sub-grid">
+          <div class="stats-sub-item">
+            <span class="stats-sub-label">勝利数 / 試行数</span>
+            <span class="stats-sub-val" id="winCountB">-</span>
+          </div>
+          <div class="stats-sub-item">
+            <span class="stats-sub-label">平均残りHP (残率)</span>
+            <span class="stats-sub-val" id="avgHpB">-</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="verdict-box" id="verdictText"></div>
+  </div>
+</div>
+
+<script>
+// --- STRUCTURED STAGE & ENEMY DATA ---
+const STRUCTURED_STAGES = {"1": {"廬山の滝": [{"id": "110201", "coord": "7,3", "isBoss": true, "type": "BOSS", "xianLi": 128000, "enemies": [{"name": "画皮", "hp": 11100.0, "atk": 1200.0, "crit": 23.8, "tenacity": 14.3, "speed": 119.0, "dodge": 11.9, "hit": 48.6, "vampire": 0.0}]}, {"id": "110109", "coord": "1,0", "isBoss": false, "type": "通常", "xianLi": 100, "enemies": [{"name": "箒妖怪", "hp": 215.0, "atk": 74.0, "crit": 1.8, "tenacity": 1.4, "speed": 101.5, "dodge": 1.1, "hit": 22.2, "vampire": 0.0}, {"name": "箒妖怪", "hp": 215.0, "atk": 74.0, "crit": 1.8, "tenacity": 1.4, "speed": 101.5, "dodge": 1.1, "hit": 22.2, "vampire": 0.0}]}, {"id": "110102", "coord": "1,2", "isBoss": false, "type": "通常", "xianLi": 7260, "enemies": [{"name": "箒妖怪", "hp": 325.0, "atk": 95.0, "crit": 5.7, "tenacity": 4.3, "speed": 104.6, "dodge": 3.6, "hit": 26.9, "vampire": 0.0}, {"name": "桃霊", "hp": 1550.0, "atk": 440.0, "crit": 6.1, "tenacity": 4.3, "speed": 104.9, "dodge": 3.6, "hit": 27.3, "vampire": 0.0}, {"name": "箒妖怪", "hp": 325.0, "atk": 95.0, "crit": 5.7, "tenacity": 4.3, "speed": 104.6, "dodge": 3.6, "hit": 26.9, "vampire": 0.0}]}, {"id": "110101", "coord": "1,4", "isBoss": false, "type": "通常", "xianLi": 72100, "enemies": [{"name": "箒妖怪", "hp": 2945.0, "atk": 965.0, "crit": 15.2, "tenacity": 11.4, "speed": 112.2, "dodge": 9.5, "hit": 38.3, "vampire": 0.0}, {"name": "箒妖怪", "hp": 2945.0, "atk": 965.0, "crit": 15.2, "tenacity": 11.4, "speed": 112.2, "dodge": 9.5, "hit": 38.3, "vampire": 0.0}]}, {"id": "110106", "coord": "3,1", "isBoss": false, "type": "通常", "xianLi": 72100, "enemies": [{"name": "桃霊", "hp": 2945.0, "atk": 965.0, "crit": 16.2, "tenacity": 11.4, "speed": 112.9, "dodge": 9.5, "hit": 39.4, "vampire": 0.0}, {"name": "桃霊", "hp": 2945.0, "atk": 965.0, "crit": 16.2, "tenacity": 11.4, "speed": 112.9, "dodge": 9.5, "hit": 39.4, "vampire": 0.0}]}, {"id": "110103", "coord": "3,2", "isBoss": false, "type": "通常", "xianLi": 23100, "enemies": [{"name": "桃霊", "hp": 1230.0, "atk": 375.0, "crit": 10.1, "tenacity": 7.1, "speed": 108.1, "dodge": 6.0, "hit": 32.1, "vampire": 0.0}, {"name": "桃霊", "hp": 1230.0, "atk": 375.0, "crit": 10.1, "tenacity": 7.1, "speed": 108.1, "dodge": 6.0, "hit": 32.1, "vampire": 0.0}, {"name": "桃霊", "hp": 1230.0, "atk": 375.0, "crit": 10.1, "tenacity": 7.1, "speed": 108.1, "dodge": 6.0, "hit": 32.1, "vampire": 0.0}]}, {"id": "110104", "coord": "4,2", "isBoss": false, "type": "通常", "xianLi": 43150, "enemies": [{"name": "箒妖怪", "hp": 715.0, "atk": 205.0, "crit": 12.4, "tenacity": 9.3, "speed": 109.9, "dodge": 7.7, "hit": 34.9, "vampire": 0.0}, {"name": "魔眼", "hp": 5015.0, "atk": 640.0, "crit": 13.9, "tenacity": 9.3, "speed": 111.1, "dodge": 7.7, "hit": 36.7, "vampire": 0.0}, {"name": "箒妖怪", "hp": 715.0, "atk": 205.0, "crit": 12.4, "tenacity": 9.3, "speed": 109.9, "dodge": 7.7, "hit": 34.9, "vampire": 0.0}]}, {"id": "110107", "coord": "5,1", "isBoss": false, "type": "通常", "xianLi": 105500, "enemies": [{"name": "桃霊", "hp": 1030.0, "atk": 290.0, "crit": 18.8, "tenacity": 13.3, "speed": 115.0, "dodge": 11.1, "hit": 42.5, "vampire": 0.0}, {"name": "息亀", "hp": 4855.0, "atk": 1350.0, "crit": 21.0, "tenacity": 13.3, "speed": 116.8, "dodge": 11.1, "hit": 45.2, "vampire": 0.0}, {"name": "桃霊", "hp": 1030.0, "atk": 290.0, "crit": 18.8, "tenacity": 13.3, "speed": 115.0, "dodge": 11.1, "hit": 42.5, "vampire": 0.0}]}, {"id": "110105", "coord": "5,2", "isBoss": false, "type": "通常", "xianLi": 99300, "enemies": [{"name": "魔眼", "hp": 5015.0, "atk": 730.0, "crit": 19.4, "tenacity": 13.0, "speed": 115.5, "dodge": 10.8, "hit": 43.3, "vampire": 0.0}, {"name": "魔眼", "hp": 5015.0, "atk": 730.0, "crit": 19.4, "tenacity": 13.0, "speed": 115.5, "dodge": 10.8, "hit": 43.3, "vampire": 0.0}]}, {"id": "110108", "coord": "7,1", "isBoss": false, "type": "通常", "xianLi": 111500, "enemies": [{"name": "魔眼", "hp": 1575.0, "atk": 200.0, "crit": 20.3, "tenacity": 13.6, "speed": 116.3, "dodge": 11.3, "hit": 44.4, "vampire": 0.0}, {"name": "息亀", "hp": 4900.0, "atk": 1400.0, "crit": 21.5, "tenacity": 13.6, "speed": 117.2, "dodge": 11.3, "hit": 45.8, "vampire": 0.0}, {"name": "魔眼", "hp": 1575.0, "atk": 200.0, "crit": 20.3, "tenacity": 13.6, "speed": 116.3, "dodge": 11.3, "hit": 44.4, "vampire": 0.0}]}], "蜀の道": [{"id": "210201", "coord": "1,4", "isBoss": true, "type": "BOSS", "xianLi": 199500, "enemies": [{"name": "夜叉", "hp": 17100.0, "atk": 1200.0, "crit": 12.2, "tenacity": 49.2, "speed": 109.7, "dodge": 24.3, "hit": 14.6, "vampire": 9.7}]}, {"id": "210105", "coord": "1,2", "isBoss": false, "type": "通常", "xianLi": 120000, "enemies": [{"name": "草の精霊", "hp": 7060.0, "atk": 655.0, "crit": 10.0, "tenacity": 39.2, "speed": 108.0, "dodge": 16.0, "hit": 12.0, "vampire": 6.4}, {"name": "草の精霊", "hp": 7060.0, "atk": 655.0, "crit": 10.0, "tenacity": 39.2, "speed": 108.0, "dodge": 16.0, "hit": 12.0, "vampire": 6.4}]}, {"id": "210109", "coord": "2,0", "isBoss": false, "type": "通常", "xianLi": 128000, "enemies": [{"name": "草の精霊", "hp": 2175.0, "atk": 175.0, "crit": 10.3, "tenacity": 39.7, "speed": 108.2, "dodge": 16.4, "hit": 12.3, "vampire": 6.6}, {"name": "木怪", "hp": 10050.0, "atk": 825.0, "crit": 10.3, "tenacity": 40.9, "speed": 108.2, "dodge": 17.4, "hit": 12.3, "vampire": 7.0}, {"name": "草の精霊", "hp": 2175.0, "atk": 175.0, "crit": 10.3, "tenacity": 39.7, "speed": 108.2, "dodge": 16.4, "hit": 12.3, "vampire": 6.6}]}, {"id": "210101", "coord": "2,4", "isBoss": false, "type": "通常", "xianLi": 174500, "enemies": [{"name": "石の精霊", "hp": 2480.0, "atk": 195.0, "crit": 11.6, "tenacity": 45.0, "speed": 109.2, "dodge": 20.8, "hit": 13.9, "vampire": 8.3}, {"name": "魔蠍", "hp": 9190.0, "atk": 1150.0, "crit": 11.6, "tenacity": 46.3, "speed": 109.2, "dodge": 22.0, "hit": 13.9, "vampire": 8.8}, {"name": "石の精霊", "hp": 2480.0, "atk": 195.0, "crit": 11.6, "tenacity": 45.0, "speed": 109.2, "dodge": 20.8, "hit": 13.9, "vampire": 8.3}]}, {"id": "210107", "coord": "4,1", "isBoss": false, "type": "通常", "xianLi": 136500, "enemies": [{"name": "木怪", "hp": 4955.0, "atk": 430.0, "crit": 10.5, "tenacity": 41.4, "speed": 108.4, "dodge": 17.9, "hit": 12.6, "vampire": 7.1}, {"name": "木怪", "hp": 4955.0, "atk": 430.0, "crit": 10.5, "tenacity": 41.4, "speed": 108.4, "dodge": 17.9, "hit": 12.6, "vampire": 7.1}, {"name": "木怪", "hp": 4955.0, "atk": 430.0, "crit": 10.5, "tenacity": 41.4, "speed": 108.4, "dodge": 17.9, "hit": 12.6, "vampire": 7.1}]}, {"id": "210106", "coord": "4,2", "isBoss": false, "type": "通常", "xianLi": 145500, "enemies": [{"name": "草の精霊", "hp": 2275.0, "atk": 185.0, "crit": 10.8, "tenacity": 40.7, "speed": 108.6, "dodge": 17.2, "hit": 12.9, "vampire": 6.9}, {"name": "石の精霊", "hp": 10600.0, "atk": 865.0, "crit": 10.8, "tenacity": 43.3, "speed": 108.6, "dodge": 19.4, "hit": 12.9, "vampire": 7.8}, {"name": "草の精霊", "hp": 2275.0, "atk": 185.0, "crit": 10.8, "tenacity": 40.7, "speed": 108.6, "dodge": 17.2, "hit": 12.9, "vampire": 6.9}]}, {"id": "210108", "coord": "5,1", "isBoss": false, "type": "通常", "xianLi": 112000, "enemies": [{"name": "木怪", "hp": 6845.0, "atk": 640.0, "crit": 9.7, "tenacity": 39.8, "speed": 107.8, "dodge": 16.5, "hit": 11.7, "vampire": 6.6}, {"name": "木怪", "hp": 6845.0, "atk": 640.0, "crit": 9.7, "tenacity": 39.8, "speed": 107.8, "dodge": 16.5, "hit": 11.7, "vampire": 6.6}]}, {"id": "210102", "coord": "5,3", "isBoss": false, "type": "通常", "xianLi": 154500, "enemies": [{"name": "石の精霊", "hp": 7770.0, "atk": 725.0, "crit": 11.0, "tenacity": 43.8, "speed": 108.8, "dodge": 19.9, "hit": 13.2, "vampire": 7.9}, {"name": "石の精霊", "hp": 7770.0, "atk": 725.0, "crit": 11.0, "tenacity": 43.8, "speed": 108.8, "dodge": 19.9, "hit": 13.2, "vampire": 7.9}]}, {"id": "210103", "coord": "6,3", "isBoss": false, "type": "通常", "xianLi": 164500, "enemies": [{"name": "木怪", "hp": 2375.0, "atk": 195.0, "crit": 11.3, "tenacity": 43.0, "speed": 109.0, "dodge": 19.2, "hit": 13.6, "vampire": 7.7}, {"name": "魔蠍", "hp": 9180.0, "atk": 1100.0, "crit": 11.3, "tenacity": 45.7, "speed": 109.0, "dodge": 21.5, "hit": 13.6, "vampire": 8.6}, {"name": "木怪", "hp": 2375.0, "atk": 195.0, "crit": 11.3, "tenacity": 43.0, "speed": 109.0, "dodge": 19.2, "hit": 13.6, "vampire": 7.7}]}, {"id": "210104", "coord": "7,3", "isBoss": false, "type": "通常", "xianLi": 112000, "enemies": [{"name": "草の精霊", "hp": 6845.0, "atk": 640.0, "crit": 9.7, "tenacity": 38.7, "speed": 107.8, "dodge": 15.6, "hit": 11.7, "vampire": 6.2}, {"name": "草の精霊", "hp": 6845.0, "atk": 640.0, "crit": 9.7, "tenacity": 38.7, "speed": 107.8, "dodge": 15.6, "hit": 11.7, "vampire": 6.2}]}], "広寒天宮": [{"id": "310201", "coord": "8,1", "isBoss": true, "type": "BOSS", "xianLi": 293500, "enemies": [{"name": "玉兎の精霊", "hp": 13200.0, "atk": 2250.0, "crit": 12.4, "tenacity": 14.9, "speed": 139.9, "dodge": 24.9, "hit": 14.9, "vampire": 9.9}]}, {"id": "310107", "coord": "1,1", "isBoss": false, "type": "通常", "xianLi": 176000, "enemies": [{"name": "灯籠幽霊", "hp": 5580.0, "atk": 1200.0, "crit": 10.2, "tenacity": 12.2, "speed": 133.1, "dodge": 16.3, "hit": 12.2, "vampire": 6.5}, {"name": "灯籠幽霊", "hp": 5580.0, "atk": 1200.0, "crit": 10.2, "tenacity": 12.2, "speed": 133.1, "dodge": 16.3, "hit": 12.2, "vampire": 6.5}]}, {"id": "310102", "coord": "1,3", "isBoss": false, "type": "通常", "xianLi": 164500, "enemies": [{"name": "灯籠幽霊", "hp": 5295.0, "atk": 1200.0, "crit": 9.9, "tenacity": 11.9, "speed": 132.7, "dodge": 15.9, "hit": 11.9, "vampire": 6.4}, {"name": "灯籠幽霊", "hp": 5295.0, "atk": 1200.0, "crit": 9.9, "tenacity": 11.9, "speed": 132.7, "dodge": 15.9, "hit": 11.9, "vampire": 6.4}]}, {"id": "310103", "coord": "2,2", "isBoss": false, "type": "通常", "xianLi": 188000, "enemies": [{"name": "灯籠幽霊", "hp": 1675.0, "atk": 330.0, "crit": 10.5, "tenacity": 12.6, "speed": 133.4, "dodge": 16.8, "hit": 12.6, "vampire": 6.7}, {"name": "魚の精霊", "hp": 7780.0, "atk": 1550.0, "crit": 10.5, "tenacity": 12.6, "speed": 134.2, "dodge": 17.8, "hit": 12.6, "vampire": 7.1}, {"name": "灯籠幽霊", "hp": 1675.0, "atk": 330.0, "crit": 10.5, "tenacity": 12.6, "speed": 133.4, "dodge": 16.8, "hit": 12.6, "vampire": 6.7}]}, {"id": "310108", "coord": "3,1", "isBoss": false, "type": "通常", "xianLi": 200500, "enemies": [{"name": "魚の精霊", "hp": 3790.0, "atk": 815.0, "crit": 10.7, "tenacity": 12.9, "speed": 134.6, "dodge": 18.3, "hit": 12.9, "vampire": 7.3}, {"name": "魚の精霊", "hp": 3790.0, "atk": 815.0, "crit": 10.7, "tenacity": 12.9, "speed": 134.6, "dodge": 18.3, "hit": 12.9, "vampire": 7.3}, {"name": "魚の精霊", "hp": 3790.0, "atk": 815.0, "crit": 10.7, "tenacity": 12.9, "speed": 134.6, "dodge": 18.3, "hit": 12.9, "vampire": 7.3}]}, {"id": "310109", "coord": "4,1", "isBoss": false, "type": "通常", "xianLi": 213500, "enemies": [{"name": "灯籠幽霊", "hp": 1745.0, "atk": 350.0, "crit": 11.0, "tenacity": 13.2, "speed": 134.1, "dodge": 17.6, "hit": 13.2, "vampire": 7.0}, {"name": "丹青", "hp": 8320.0, "atk": 1600.0, "crit": 11.0, "tenacity": 13.2, "speed": 135.8, "dodge": 19.8, "hit": 13.2, "vampire": 7.9}, {"name": "灯籠幽霊", "hp": 1745.0, "atk": 350.0, "crit": 11.0, "tenacity": 13.2, "speed": 134.1, "dodge": 17.6, "hit": 13.2, "vampire": 7.0}]}, {"id": "310104", "coord": "5,2", "isBoss": false, "type": "通常", "xianLi": 227000, "enemies": [{"name": "丹青", "hp": 6050.0, "atk": 1350.0, "crit": 11.3, "tenacity": 13.5, "speed": 136.2, "dodge": 20.3, "hit": 13.5, "vampire": 8.1}, {"name": "丹青", "hp": 6050.0, "atk": 1350.0, "crit": 11.3, "tenacity": 13.5, "speed": 136.2, "dodge": 20.3, "hit": 13.5, "vampire": 8.1}]}, {"id": "310101", "coord": "5,4", "isBoss": false, "type": "通常", "xianLi": 164500, "enemies": [{"name": "魚の精霊", "hp": 5295.0, "atk": 1200.0, "crit": 9.9, "tenacity": 11.9, "speed": 133.5, "dodge": 16.9, "hit": 11.9, "vampire": 6.8}, {"name": "魚の精霊", "hp": 5295.0, "atk": 1200.0, "crit": 9.9, "tenacity": 11.9, "speed": 133.5, "dodge": 16.9, "hit": 11.9, "vampire": 6.8}]}, {"id": "310105", "coord": "7,2", "isBoss": false, "type": "通常", "xianLi": 241500, "enemies": [{"name": "魚の精霊", "hp": 1835.0, "atk": 365.0, "crit": 11.5, "tenacity": 13.8, "speed": 135.7, "dodge": 19.6, "hit": 13.8, "vampire": 7.8}, {"name": "走無常", "hp": 8610.0, "atk": 1700.0, "crit": 11.5, "tenacity": 13.8, "speed": 137.5, "dodge": 21.9, "hit": 13.8, "vampire": 8.8}, {"name": "魚の精霊", "hp": 1835.0, "atk": 365.0, "crit": 11.5, "tenacity": 13.8, "speed": 135.7, "dodge": 19.6, "hit": 13.8, "vampire": 7.8}]}, {"id": "310106", "coord": "8,2", "isBoss": false, "type": "通常", "xianLi": 256500, "enemies": [{"name": "丹青", "hp": 1875.0, "atk": 375.0, "crit": 11.8, "tenacity": 14.2, "speed": 137.0, "dodge": 21.2, "hit": 14.2, "vampire": 8.5}, {"name": "走無常", "hp": 8755.0, "atk": 1750.0, "crit": 11.8, "tenacity": 14.2, "speed": 137.9, "dodge": 22.4, "hit": 14.2, "vampire": 9.0}, {"name": "丹青", "hp": 1875.0, "atk": 375.0, "crit": 11.8, "tenacity": 14.2, "speed": 137.0, "dodge": 21.2, "hit": 14.2, "vampire": 8.5}]}], "蓬莱仙島": [{"id": "410201", "coord": "5,4", "isBoss": true, "type": "BOSS", "xianLi": 404500, "enemies": [{"name": "拂子道士", "hp": 19250.0, "atk": 2100.0, "crit": 45.4, "tenacity": 30.5, "speed": 110.2, "dodge": 12.7, "hit": 30.5, "vampire": 0.0}]}, {"id": "410104", "coord": "0,2", "isBoss": false, "type": "通常", "xianLi": 242000, "enemies": [{"name": "道童", "hp": 7905.0, "atk": 1150.0, "crit": 36.7, "tenacity": 20.0, "speed": 108.3, "dodge": 10.4, "hit": 20.0, "vampire": 0.0}, {"name": "道童", "hp": 7905.0, "atk": 1150.0, "crit": 36.7, "tenacity": 20.0, "speed": 108.3, "dodge": 10.4, "hit": 20.0, "vampire": 0.0}]}, {"id": "410101", "coord": "0,3", "isBoss": false, "type": "通常", "xianLi": 258500, "enemies": [{"name": "道童", "hp": 2425.0, "atk": 310.0, "crit": 37.1, "tenacity": 20.5, "speed": 108.6, "dodge": 10.7, "hit": 20.5, "vampire": 0.0}, {"name": "女幽霊", "hp": 11650.0, "atk": 1400.0, "crit": 38.2, "tenacity": 21.8, "speed": 108.6, "dodge": 10.7, "hit": 21.8, "vampire": 0.0}, {"name": "道童", "hp": 2425.0, "atk": 310.0, "crit": 37.1, "tenacity": 20.5, "speed": 108.6, "dodge": 10.7, "hit": 20.5, "vampire": 0.0}]}, {"id": "410102", "coord": "2,3", "isBoss": false, "type": "通常", "xianLi": 275500, "enemies": [{"name": "女幽霊", "hp": 5525.0, "atk": 760.0, "crit": 38.6, "tenacity": 22.4, "speed": 108.8, "dodge": 11.0, "hit": 22.4, "vampire": 0.0}, {"name": "女幽霊", "hp": 5525.0, "atk": 760.0, "crit": 38.6, "tenacity": 22.4, "speed": 108.8, "dodge": 11.0, "hit": 22.4, "vampire": 0.0}, {"name": "女幽霊", "hp": 5525.0, "atk": 760.0, "crit": 38.6, "tenacity": 22.4, "speed": 108.8, "dodge": 11.0, "hit": 22.4, "vampire": 0.0}]}, {"id": "410106", "coord": "3,1", "isBoss": false, "type": "通常", "xianLi": 312500, "enemies": [{"name": "酒童子", "hp": 5840.0, "atk": 1900.0, "crit": 40.7, "tenacity": 24.9, "speed": 109.2, "dodge": 11.5, "hit": 24.9, "vampire": 0.0}, {"name": "酒童子", "hp": 5840.0, "atk": 1900.0, "crit": 40.7, "tenacity": 24.9, "speed": 109.2, "dodge": 11.5, "hit": 24.9, "vampire": 0.0}]}, {"id": "410103", "coord": "3,3", "isBoss": false, "type": "通常", "xianLi": 293500, "enemies": [{"name": "道童", "hp": 2550.0, "atk": 325.0, "crit": 38.0, "tenacity": 21.6, "speed": 109.0, "dodge": 11.2, "hit": 21.6, "vampire": 0.0}, {"name": "酒童子", "hp": 8035.0, "atk": 2250.0, "crit": 40.2, "tenacity": 24.3, "speed": 109.0, "dodge": 11.2, "hit": 24.3, "vampire": 0.0}, {"name": "道童", "hp": 2550.0, "atk": 325.0, "crit": 38.0, "tenacity": 21.6, "speed": 109.0, "dodge": 11.2, "hit": 21.6, "vampire": 0.0}]}, {"id": "410107", "coord": "5,1", "isBoss": false, "type": "通常", "xianLi": 332500, "enemies": [{"name": "女幽霊", "hp": 2685.0, "atk": 340.0, "crit": 40.0, "tenacity": 24.0, "speed": 109.4, "dodge": 11.8, "hit": 24.0, "vampire": 0.0}, {"name": "猫面婆", "hp": 15900.0, "atk": 1250.0, "crit": 42.4, "tenacity": 26.9, "speed": 109.4, "dodge": 11.8, "hit": 26.9, "vampire": 0.0}, {"name": "女幽霊", "hp": 2685.0, "atk": 340.0, "crit": 40.0, "tenacity": 24.0, "speed": 109.4, "dodge": 11.8, "hit": 24.0, "vampire": 0.0}]}, {"id": "410105", "coord": "5,2", "isBoss": false, "type": "通常", "xianLi": 226000, "enemies": [{"name": "道童", "hp": 7840.0, "atk": 1100.0, "crit": 36.2, "tenacity": 19.5, "speed": 108.1, "dodge": 10.2, "hit": 19.5, "vampire": 0.0}, {"name": "道童", "hp": 7840.0, "atk": 1100.0, "crit": 36.2, "tenacity": 19.5, "speed": 108.1, "dodge": 10.2, "hit": 19.5, "vampire": 0.0}]}, {"id": "410108", "coord": "6,0", "isBoss": false, "type": "通常", "xianLi": 353000, "enemies": [{"name": "酒童子", "hp": 1820.0, "atk": 525.0, "crit": 41.7, "tenacity": 26.0, "speed": 109.6, "dodge": 12.1, "hit": 26.0, "vampire": 0.0}, {"name": "猫面婆", "hp": 16000.0, "atk": 1300.0, "crit": 42.9, "tenacity": 27.5, "speed": 109.6, "dodge": 12.1, "hit": 27.5, "vampire": 0.0}, {"name": "酒童子", "hp": 1820.0, "atk": 525.0, "crit": 41.7, "tenacity": 26.0, "speed": 109.6, "dodge": 12.1, "hit": 26.0, "vampire": 0.0}]}, {"id": "410109", "coord": "7,0", "isBoss": false, "type": "通常", "xianLi": 226000, "enemies": [{"name": "女幽霊", "hp": 7840.0, "atk": 1100.0, "crit": 37.3, "tenacity": 20.7, "speed": 108.1, "dodge": 10.2, "hit": 20.7, "vampire": 0.0}, {"name": "女幽霊", "hp": 7840.0, "atk": 1100.0, "crit": 37.3, "tenacity": 20.7, "speed": 108.1, "dodge": 10.2, "hit": 20.7, "vampire": 0.0}]}], "天姥山": [{"id": "510201", "coord": "8,1", "isBoss": true, "type": "BOSS", "xianLi": 693000, "enemies": [{"name": "狐妖", "hp": 16600.0, "atk": 4050.0, "crit": 26.5, "tenacity": 15.9, "speed": 121.2, "dodge": 33.2, "hit": 31.8, "vampire": 0.0}]}, {"id": "510105", "coord": "1,1", "isBoss": false, "type": "通常", "xianLi": 412500, "enemies": [{"name": "桃霊", "hp": 6885.0, "atk": 2200.0, "crit": 18.5, "tenacity": 13.0, "speed": 114.8, "dodge": 30.9, "hit": 22.2, "vampire": 0.0}, {"name": "桃霊", "hp": 6885.0, "atk": 2200.0, "crit": 18.5, "tenacity": 13.0, "speed": 114.8, "dodge": 30.9, "hit": 22.2, "vampire": 0.0}]}, {"id": "510106", "coord": "2,1", "isBoss": false, "type": "通常", "xianLi": 441000, "enemies": [{"name": "桃霊", "hp": 2085.0, "atk": 600.0, "crit": 19.0, "tenacity": 13.4, "speed": 115.2, "dodge": 31.2, "hit": 22.7, "vampire": 0.0}, {"name": "木怪", "hp": 18800.0, "atk": 1450.0, "crit": 11.2, "tenacity": 22.7, "speed": 108.9, "dodge": 39.0, "hit": 13.4, "vampire": 7.6}, {"name": "桃霊", "hp": 2085.0, "atk": 600.0, "crit": 19.0, "tenacity": 13.4, "speed": 115.2, "dodge": 31.2, "hit": 22.7, "vampire": 0.0}]}, {"id": "510103", "coord": "2,3", "isBoss": false, "type": "通常", "xianLi": 471000, "enemies": [{"name": "木怪", "hp": 8910.0, "atk": 785.0, "crit": 11.4, "tenacity": 23.3, "speed": 109.1, "dodge": 39.4, "hit": 13.7, "vampire": 7.8}, {"name": "木怪", "hp": 8910.0, "atk": 785.0, "crit": 11.4, "tenacity": 23.3, "speed": 109.1, "dodge": 39.4, "hit": 13.7, "vampire": 7.8}, {"name": "木怪", "hp": 8910.0, "atk": 785.0, "crit": 11.4, "tenacity": 23.3, "speed": 109.1, "dodge": 39.4, "hit": 13.7, "vampire": 7.8}]}, {"id": "510101", "coord": "2,4", "isBoss": false, "type": "通常", "xianLi": 385500, "enemies": [{"name": "桃霊", "hp": 6685.0, "atk": 2150.0, "crit": 18.0, "tenacity": 12.7, "speed": 114.4, "dodge": 30.6, "hit": 21.6, "vampire": 0.0}, {"name": "桃霊", "hp": 6685.0, "atk": 2150.0, "crit": 18.0, "tenacity": 12.7, "speed": 114.4, "dodge": 30.6, "hit": 21.6, "vampire": 0.0}]}, {"id": "510102", "coord": "3,4", "isBoss": false, "type": "通常", "xianLi": 502000, "enemies": [{"name": "桃霊", "hp": 2195.0, "atk": 630.0, "crit": 19.9, "tenacity": 14.1, "speed": 115.9, "dodge": 31.7, "hit": 23.9, "vampire": 0.0}, {"name": "魔眼", "hp": 15450.0, "atk": 1950.0, "crit": 21.1, "tenacity": 14.1, "speed": 116.9, "dodge": 31.7, "hit": 25.3, "vampire": 0.0}, {"name": "桃霊", "hp": 2195.0, "atk": 630.0, "crit": 19.9, "tenacity": 14.1, "speed": 115.9, "dodge": 31.7, "hit": 23.9, "vampire": 0.0}]}, {"id": "510109", "coord": "4,0", "isBoss": false, "type": "通常", "xianLi": 385500, "enemies": [{"name": "木怪", "hp": 12450.0, "atk": 1150.0, "crit": 10.6, "tenacity": 21.6, "speed": 108.5, "dodge": 38.0, "hit": 12.7, "vampire": 7.2}, {"name": "木怪", "hp": 12450.0, "atk": 1150.0, "crit": 10.6, "tenacity": 21.6, "speed": 108.5, "dodge": 38.0, "hit": 12.7, "vampire": 7.2}]}, {"id": "510107", "coord": "4,1", "isBoss": false, "type": "通常", "xianLi": 568500, "enemies": [{"name": "木怪", "hp": 4340.0, "atk": 350.0, "crit": 12.3, "tenacity": 25.1, "speed": 109.8, "dodge": 40.9, "hit": 14.7, "vampire": 8.4}, {"name": "息亀", "hp": 10850.0, "atk": 3050.0, "crit": 23.3, "tenacity": 14.7, "speed": 118.7, "dodge": 32.3, "hit": 28.0, "vampire": 0.0}, {"name": "木怪", "hp": 4340.0, "atk": 350.0, "crit": 12.3, "tenacity": 25.1, "speed": 109.8, "dodge": 40.9, "hit": 14.7, "vampire": 8.4}]}, {"id": "510104", "coord": "4,3", "isBoss": false, "type": "通常", "xianLi": 534500, "enemies": [{"name": "魔眼", "hp": 11550.0, "atk": 1600.0, "crit": 21.6, "tenacity": 14.4, "speed": 117.3, "dodge": 32.0, "hit": 25.9, "vampire": 0.0}, {"name": "魔眼", "hp": 11550.0, "atk": 1600.0, "crit": 21.6, "tenacity": 14.4, "speed": 117.3, "dodge": 32.0, "hit": 25.9, "vampire": 0.0}]}, {"id": "510108", "coord": "6,1", "isBoss": false, "type": "通常", "xianLi": 604000, "enemies": [{"name": "魔眼", "hp": 3530.0, "atk": 450.0, "crit": 22.6, "tenacity": 15.1, "speed": 118.1, "dodge": 32.6, "hit": 27.1, "vampire": 0.0}, {"name": "息亀", "hp": 11000.0, "atk": 3150.0, "crit": 23.9, "tenacity": 15.1, "speed": 119.1, "dodge": 32.6, "hit": 28.7, "vampire": 0.0}, {"name": "魔眼", "hp": 3530.0, "atk": 450.0, "crit": 22.6, "tenacity": 15.1, "speed": 118.1, "dodge": 32.6, "hit": 27.1, "vampire": 0.0}]}], "崑崙": [{"id": "610201", "coord": "7,0", "isBoss": true, "type": "BOSS", "xianLi": 1150000, "enemies": [{"name": "蓮花仙", "hp": 31400.0, "atk": 3450.0, "crit": 27.7, "tenacity": 33.3, "speed": 111.1, "dodge": 13.9, "hit": 33.3, "vampire": 10.0}]}, {"id": "610104", "coord": "0,2", "isBoss": false, "type": "通常", "xianLi": 682500, "enemies": [{"name": "魚の精霊", "hp": 10350.0, "atk": 2350.0, "crit": 11.4, "tenacity": 13.7, "speed": 115.5, "dodge": 19.4, "hit": 13.7, "vampire": 17.7}, {"name": "魚の精霊", "hp": 10350.0, "atk": 2350.0, "crit": 11.4, "tenacity": 13.7, "speed": 115.5, "dodge": 19.4, "hit": 13.7, "vampire": 17.7}]}, {"id": "610105", "coord": "2,2", "isBoss": false, "type": "通常", "xianLi": 730000, "enemies": [{"name": "魚の精霊", "hp": 3170.0, "atk": 635.0, "crit": 11.7, "tenacity": 14.0, "speed": 115.9, "dodge": 19.9, "hit": 14.0, "vampire": 17.9}, {"name": "女幽霊", "hp": 18650.0, "atk": 2350.0, "crit": 19.9, "tenacity": 23.8, "speed": 109.3, "dodge": 11.7, "hit": 23.8, "vampire": 10.0}, {"name": "魚の精霊", "hp": 3170.0, "atk": 635.0, "crit": 11.7, "tenacity": 14.0, "speed": 115.9, "dodge": 19.9, "hit": 14.0, "vampire": 17.9}]}, {"id": "610106", "coord": "3,2", "isBoss": false, "type": "通常", "xianLi": 779500, "enemies": [{"name": "女幽霊", "hp": 9365.0, "atk": 1200.0, "crit": 20.4, "tenacity": 24.4, "speed": 109.6, "dodge": 12.0, "hit": 24.4, "vampire": 10.0}, {"name": "女幽霊", "hp": 9365.0, "atk": 1200.0, "crit": 20.4, "tenacity": 24.4, "speed": 109.6, "dodge": 12.0, "hit": 24.4, "vampire": 10.0}, {"name": "女幽霊", "hp": 9365.0, "atk": 1200.0, "crit": 20.4, "tenacity": 24.4, "speed": 109.6, "dodge": 12.0, "hit": 24.4, "vampire": 10.0}]}, {"id": "610101", "coord": "3,3", "isBoss": false, "type": "通常", "xianLi": 637000, "enemies": [{"name": "魚の精霊", "hp": 10050.0, "atk": 2300.0, "crit": 11.1, "tenacity": 13.3, "speed": 115.1, "dodge": 18.9, "hit": 13.3, "vampire": 17.5}, {"name": "魚の精霊", "hp": 10050.0, "atk": 2300.0, "crit": 11.1, "tenacity": 13.3, "speed": 115.1, "dodge": 18.9, "hit": 13.3, "vampire": 17.5}]}, {"id": "610107", "coord": "4,1", "isBoss": false, "type": "通常", "xianLi": 832000, "enemies": [{"name": "魚の精霊", "hp": 3340.0, "atk": 665.0, "crit": 12.3, "tenacity": 14.7, "speed": 116.7, "dodge": 20.9, "hit": 14.7, "vampire": 18.4}, {"name": "丹青", "hp": 15600.0, "atk": 3100.0, "crit": 12.3, "tenacity": 14.7, "speed": 117.7, "dodge": 22.1, "hit": 14.7, "vampire": 18.8}, {"name": "魚の精霊", "hp": 3340.0, "atk": 665.0, "crit": 12.3, "tenacity": 14.7, "speed": 116.7, "dodge": 20.9, "hit": 14.7, "vampire": 18.4}]}, {"id": "610108", "coord": "5,1", "isBoss": false, "type": "通常", "xianLi": 886500, "enemies": [{"name": "丹青", "hp": 11400.0, "atk": 2600.0, "crit": 12.6, "tenacity": 15.1, "speed": 118.1, "dodge": 22.6, "hit": 15.1, "vampire": 19.1}, {"name": "丹青", "hp": 11400.0, "atk": 2600.0, "crit": 12.6, "tenacity": 15.1, "speed": 118.1, "dodge": 22.6, "hit": 15.1, "vampire": 19.1}]}, {"id": "610109", "coord": "6,1", "isBoss": false, "type": "通常", "xianLi": 943500, "enemies": [{"name": "女幽霊", "hp": 4400.0, "atk": 555.0, "crit": 21.9, "tenacity": 26.3, "speed": 110.3, "dodge": 12.9, "hit": 26.3, "vampire": 10.0}, {"name": "走無常", "hp": 16350.0, "atk": 3250.0, "crit": 12.9, "tenacity": 15.4, "speed": 119.6, "dodge": 24.5, "hit": 15.4, "vampire": 19.8}, {"name": "女幽霊", "hp": 4400.0, "atk": 555.0, "crit": 21.9, "tenacity": 26.3, "speed": 110.3, "dodge": 12.9, "hit": 26.3, "vampire": 10.0}]}, {"id": "610102", "coord": "6,3", "isBoss": false, "type": "通常", "xianLi": 1000000, "enemies": [{"name": "丹青", "hp": 3575.0, "atk": 715.0, "crit": 13.2, "tenacity": 15.8, "speed": 119.0, "dodge": 23.7, "hit": 15.8, "vampire": 19.5}, {"name": "走無常", "hp": 16850.0, "atk": 3300.0, "crit": 13.2, "tenacity": 15.8, "speed": 120.0, "dodge": 25.0, "hit": 15.8, "vampire": 20.0}, {"name": "丹青", "hp": 3575.0, "atk": 715.0, "crit": 13.2, "tenacity": 15.8, "speed": 119.0, "dodge": 23.7, "hit": 15.8, "vampire": 19.5}]}, {"id": "610103", "coord": "7,3", "isBoss": false, "type": "通常", "xianLi": 637000, "enemies": [{"name": "女幽霊", "hp": 12800.0, "atk": 1800.0, "crit": 18.9, "tenacity": 22.6, "speed": 108.9, "dodge": 11.1, "hit": 22.6, "vampire": 10.0}, {"name": "女幽霊", "hp": 12800.0, "atk": 1800.0, "crit": 18.9, "tenacity": 22.6, "speed": 108.9, "dodge": 11.1, "hit": 22.6, "vampire": 10.0}]}]}, "2": {"廬山の滝": [{"id": "710201", "coord": "4,4", "isBoss": true, "type": "BOSS", "xianLi": 1840000, "enemies": [{"name": "画皮", "hp": 39250.0, "atk": 4250.0, "crit": 29.2, "tenacity": 17.5, "speed": 123.4, "dodge": 14.6, "hit": 60.1, "vampire": 0.0}]}, {"id": "710104", "coord": "1,1", "isBoss": false, "type": "通常", "xianLi": 1085000, "enemies": [{"name": "箒妖怪", "hp": 10700.0, "atk": 3500.0, "crit": 19.2, "tenacity": 14.4, "speed": 115.4, "dodge": 12.0, "hit": 48.0, "vampire": 0.0}, {"name": "箒妖怪", "hp": 10700.0, "atk": 3500.0, "crit": 19.2, "tenacity": 14.4, "speed": 115.4, "dodge": 12.0, "hit": 48.0, "vampire": 0.0}]}, {"id": "710105", "coord": "4,1", "isBoss": false, "type": "通常", "xianLi": 1010000, "enemies": [{"name": "箒妖怪", "hp": 10450.0, "atk": 3400.0, "crit": 18.7, "tenacity": 14.0, "speed": 115.0, "dodge": 11.7, "hit": 47.4, "vampire": 0.0}, {"name": "箒妖怪", "hp": 10450.0, "atk": 3400.0, "crit": 18.7, "tenacity": 14.0, "speed": 115.0, "dodge": 11.7, "hit": 47.4, "vampire": 0.0}]}, {"id": "710101", "coord": "4,2", "isBoss": false, "type": "通常", "xianLi": 1600000, "enemies": [{"name": "魔眼", "hp": 5550.0, "atk": 710.0, "crit": 25.0, "tenacity": 16.6, "speed": 120.0, "dodge": 13.9, "hit": 55.0, "vampire": 0.0}, {"name": "息亀", "hp": 17300.0, "atk": 4950.0, "crit": 26.4, "tenacity": 16.6, "speed": 121.1, "dodge": 13.9, "hit": 56.6, "vampire": 0.0}, {"name": "魔眼", "hp": 5550.0, "atk": 710.0, "crit": 25.0, "tenacity": 16.6, "speed": 120.0, "dodge": 13.9, "hit": 55.0, "vampire": 0.0}]}, {"id": "710107", "coord": "5,0", "isBoss": false, "type": "通常", "xianLi": 1160000, "enemies": [{"name": "箒妖怪", "hp": 3280.0, "atk": 945.0, "crit": 19.7, "tenacity": 14.8, "speed": 115.8, "dodge": 12.3, "hit": 48.6, "vampire": 0.0}, {"name": "桃霊", "hp": 15350.0, "atk": 4400.0, "crit": 20.9, "tenacity": 14.8, "speed": 116.7, "dodge": 12.3, "hit": 50.1, "vampire": 0.0}, {"name": "箒妖怪", "hp": 3280.0, "atk": 945.0, "crit": 19.7, "tenacity": 14.8, "speed": 115.8, "dodge": 12.3, "hit": 48.6, "vampire": 0.0}]}, {"id": "710108", "coord": "6,0", "isBoss": false, "type": "通常", "xianLi": 1240000, "enemies": [{"name": "桃霊", "hp": 7530.0, "atk": 2300.0, "crit": 21.5, "tenacity": 15.1, "speed": 117.2, "dodge": 12.6, "hit": 50.8, "vampire": 0.0}, {"name": "桃霊", "hp": 7530.0, "atk": 2300.0, "crit": 21.5, "tenacity": 15.1, "speed": 117.2, "dodge": 12.6, "hit": 50.8, "vampire": 0.0}, {"name": "桃霊", "hp": 7530.0, "atk": 2300.0, "crit": 21.5, "tenacity": 15.1, "speed": 117.2, "dodge": 12.6, "hit": 50.8, "vampire": 0.0}]}, {"id": "710102", "coord": "6,2", "isBoss": false, "type": "通常", "xianLi": 1505000, "enemies": [{"name": "桃霊", "hp": 3760.0, "atk": 1000.0, "crit": 23.1, "tenacity": 16.3, "speed": 118.4, "dodge": 13.6, "hit": 52.7, "vampire": 0.0}, {"name": "息亀", "hp": 16900.0, "atk": 4850.0, "crit": 25.8, "tenacity": 16.3, "speed": 120.6, "dodge": 13.6, "hit": 55.9, "vampire": 0.0}, {"name": "桃霊", "hp": 3760.0, "atk": 1000.0, "crit": 23.1, "tenacity": 16.3, "speed": 118.4, "dodge": 13.6, "hit": 52.7, "vampire": 0.0}]}, {"id": "710109", "coord": "8,0", "isBoss": false, "type": "通常", "xianLi": 1325000, "enemies": [{"name": "箒妖怪", "hp": 3460.0, "atk": 990.0, "crit": 20.7, "tenacity": 15.5, "speed": 116.6, "dodge": 12.9, "hit": 49.8, "vampire": 0.0}, {"name": "魔眼", "hp": 24450.0, "atk": 3050.0, "crit": 23.3, "tenacity": 15.5, "speed": 118.6, "dodge": 12.9, "hit": 52.9, "vampire": 0.0}, {"name": "箒妖怪", "hp": 3460.0, "atk": 990.0, "crit": 20.7, "tenacity": 15.5, "speed": 116.6, "dodge": 12.9, "hit": 49.8, "vampire": 0.0}]}, {"id": "710106", "coord": "8,1", "isBoss": false, "type": "通常", "xianLi": 1010000, "enemies": [{"name": "桃霊", "hp": 10450.0, "atk": 3400.0, "crit": 19.9, "tenacity": 14.0, "speed": 115.9, "dodge": 11.7, "hit": 48.8, "vampire": 0.0}, {"name": "桃霊", "hp": 10450.0, "atk": 3400.0, "crit": 19.9, "tenacity": 14.0, "speed": 115.9, "dodge": 11.7, "hit": 48.8, "vampire": 0.0}]}, {"id": "710103", "coord": "8,2", "isBoss": false, "type": "通常", "xianLi": 1410000, "enemies": [{"name": "魔眼", "hp": 17950.0, "atk": 2550.0, "crit": 23.8, "tenacity": 15.9, "speed": 119.1, "dodge": 13.2, "hit": 53.6, "vampire": 0.0}, {"name": "魔眼", "hp": 17950.0, "atk": 2550.0, "crit": 23.8, "tenacity": 15.9, "speed": 119.1, "dodge": 13.2, "hit": 53.6, "vampire": 0.0}]}], "蜀の道": [{"id": "810201", "coord": "1,2", "isBoss": true, "type": "BOSS", "xianLi": 2745000, "enemies": [{"name": "夜叉", "hp": 58400.0, "atk": 4100.0, "crit": 15.4, "tenacity": 61.9, "speed": 112.3, "dodge": 30.7, "hit": 18.4, "vampire": 12.3}]}, {"id": "810108", "coord": "1,0", "isBoss": false, "type": "通常", "xianLi": 1605000, "enemies": [{"name": "草の精霊", "hp": 24450.0, "atk": 2200.0, "crit": 12.6, "tenacity": 49.2, "speed": 110.1, "dodge": 20.2, "hit": 15.1, "vampire": 8.1}, {"name": "草の精霊", "hp": 24450.0, "atk": 2200.0, "crit": 12.6, "tenacity": 49.2, "speed": 110.1, "dodge": 20.2, "hit": 15.1, "vampire": 8.1}]}, {"id": "810109", "coord": "2,0", "isBoss": false, "type": "通常", "xianLi": 1720000, "enemies": [{"name": "草の精霊", "hp": 7405.0, "atk": 600.0, "crit": 12.9, "tenacity": 49.9, "speed": 110.4, "dodge": 20.7, "hit": 15.5, "vampire": 8.3}, {"name": "木怪", "hp": 34600.0, "atk": 2800.0, "crit": 12.9, "tenacity": 51.4, "speed": 110.4, "dodge": 22.0, "hit": 15.5, "vampire": 8.8}, {"name": "草の精霊", "hp": 7405.0, "atk": 600.0, "crit": 12.9, "tenacity": 49.9, "speed": 110.4, "dodge": 20.7, "hit": 15.5, "vampire": 8.3}]}, {"id": "810101", "coord": "2,4", "isBoss": false, "type": "通常", "xianLi": 2385000, "enemies": [{"name": "石の精霊", "hp": 8305.0, "atk": 680.0, "crit": 14.6, "tenacity": 56.5, "speed": 111.7, "dodge": 26.3, "hit": 17.5, "vampire": 10.5}, {"name": "魔蠍", "hp": 31150.0, "atk": 3950.0, "crit": 14.6, "tenacity": 58.3, "speed": 111.7, "dodge": 27.7, "hit": 17.5, "vampire": 11.1}, {"name": "石の精霊", "hp": 8305.0, "atk": 680.0, "crit": 14.6, "tenacity": 56.5, "speed": 111.7, "dodge": 26.3, "hit": 17.5, "vampire": 10.5}]}, {"id": "810104", "coord": "4,2", "isBoss": false, "type": "通常", "xianLi": 2100000, "enemies": [{"name": "石の精霊", "hp": 26800.0, "atk": 2450.0, "crit": 13.9, "tenacity": 55.1, "speed": 111.1, "dodge": 25.1, "hit": 16.7, "vampire": 10.0}, {"name": "石の精霊", "hp": 26800.0, "atk": 2450.0, "crit": 13.9, "tenacity": 55.1, "speed": 111.1, "dodge": 25.1, "hit": 16.7, "vampire": 10.0}]}, {"id": "810102", "coord": "4,3", "isBoss": false, "type": "通常", "xianLi": 2240000, "enemies": [{"name": "木怪", "hp": 8115.0, "atk": 665.0, "crit": 14.3, "tenacity": 54.1, "speed": 111.4, "dodge": 24.2, "hit": 17.1, "vampire": 9.7}, {"name": "魔蠍", "hp": 30550.0, "atk": 3850.0, "crit": 14.3, "tenacity": 57.5, "speed": 111.4, "dodge": 27.1, "hit": 17.1, "vampire": 10.8}, {"name": "木怪", "hp": 8115.0, "atk": 665.0, "crit": 14.3, "tenacity": 54.1, "speed": 111.4, "dodge": 24.2, "hit": 17.1, "vampire": 9.7}]}, {"id": "810105", "coord": "5,1", "isBoss": false, "type": "通常", "xianLi": 1840000, "enemies": [{"name": "木怪", "hp": 17100.0, "atk": 1450.0, "crit": 13.3, "tenacity": 52.1, "speed": 110.6, "dodge": 22.6, "hit": 15.9, "vampire": 9.0}, {"name": "木怪", "hp": 17100.0, "atk": 1450.0, "crit": 13.3, "tenacity": 52.1, "speed": 110.6, "dodge": 22.6, "hit": 15.9, "vampire": 9.0}, {"name": "木怪", "hp": 17100.0, "atk": 1450.0, "crit": 13.3, "tenacity": 52.1, "speed": 110.6, "dodge": 22.6, "hit": 15.9, "vampire": 9.0}]}, {"id": "810103", "coord": "5,3", "isBoss": false, "type": "通常", "xianLi": 1495000, "enemies": [{"name": "草の精霊", "hp": 23750.0, "atk": 2150.0, "crit": 12.3, "tenacity": 48.6, "speed": 109.8, "dodge": 19.7, "hit": 14.7, "vampire": 7.9}, {"name": "草の精霊", "hp": 23750.0, "atk": 2150.0, "crit": 12.3, "tenacity": 48.6, "speed": 109.8, "dodge": 19.7, "hit": 14.7, "vampire": 7.9}]}, {"id": "810106", "coord": "6,1", "isBoss": false, "type": "通常", "xianLi": 1965000, "enemies": [{"name": "草の精霊", "hp": 7795.0, "atk": 630.0, "crit": 13.6, "tenacity": 51.1, "speed": 110.9, "dodge": 21.8, "hit": 16.3, "vampire": 8.7}, {"name": "石の精霊", "hp": 36250.0, "atk": 2950.0, "crit": 13.6, "tenacity": 54.4, "speed": 110.9, "dodge": 24.5, "hit": 16.3, "vampire": 9.8}, {"name": "草の精霊", "hp": 7795.0, "atk": 630.0, "crit": 13.6, "tenacity": 51.1, "speed": 110.9, "dodge": 21.8, "hit": 16.3, "vampire": 8.7}]}, {"id": "810107", "coord": "7,1", "isBoss": false, "type": "通常", "xianLi": 1495000, "enemies": [{"name": "木怪", "hp": 23750.0, "atk": 2150.0, "crit": 12.3, "tenacity": 50.1, "speed": 109.8, "dodge": 20.9, "hit": 14.7, "vampire": 8.4}, {"name": "木怪", "hp": 23750.0, "atk": 2150.0, "crit": 12.3, "tenacity": 50.1, "speed": 109.8, "dodge": 20.9, "hit": 14.7, "vampire": 8.4}]}], "広寒天宮": [{"id": "910201", "coord": "7,2", "isBoss": true, "type": "BOSS", "xianLi": 3880000, "enemies": [{"name": "玉兎の精霊", "hp": 43600.0, "atk": 7450.0, "crit": 16.1, "tenacity": 19.3, "speed": 150.8, "dodge": 32.2, "hit": 19.3, "vampire": 12.9}]}, {"id": "910108", "coord": "1,0", "isBoss": false, "type": "通常", "xianLi": 2255000, "enemies": [{"name": "灯籠幽霊", "hp": 18000.0, "atk": 4050.0, "crit": 13.2, "tenacity": 15.9, "speed": 142.0, "dodge": 21.2, "hit": 15.9, "vampire": 8.5}, {"name": "灯籠幽霊", "hp": 18000.0, "atk": 4050.0, "crit": 13.2, "tenacity": 15.9, "speed": 142.0, "dodge": 21.2, "hit": 15.9, "vampire": 8.5}]}, {"id": "910109", "coord": "2,0", "isBoss": false, "type": "通常", "xianLi": 2415000, "enemies": [{"name": "灯籠幽霊", "hp": 5750.0, "atk": 1050.0, "crit": 13.6, "tenacity": 16.3, "speed": 142.4, "dodge": 21.7, "hit": 16.3, "vampire": 8.7}, {"name": "魚の精霊", "hp": 25750.0, "atk": 5100.0, "crit": 13.6, "tenacity": 16.3, "speed": 143.5, "dodge": 23.1, "hit": 16.3, "vampire": 9.2}, {"name": "灯籠幽霊", "hp": 5750.0, "atk": 1050.0, "crit": 13.6, "tenacity": 16.3, "speed": 142.4, "dodge": 21.7, "hit": 16.3, "vampire": 8.7}]}, {"id": "910101", "coord": "2,4", "isBoss": false, "type": "通常", "xianLi": 2100000, "enemies": [{"name": "灯籠幽霊", "hp": 17550.0, "atk": 3950.0, "crit": 12.9, "tenacity": 15.5, "speed": 141.5, "dodge": 20.6, "hit": 15.5, "vampire": 8.3}, {"name": "灯籠幽霊", "hp": 17550.0, "atk": 3950.0, "crit": 12.9, "tenacity": 15.5, "speed": 141.5, "dodge": 20.6, "hit": 15.5, "vampire": 8.3}]}, {"id": "910105", "coord": "3,2", "isBoss": false, "type": "通常", "xianLi": 2590000, "enemies": [{"name": "魚の精霊", "hp": 12700.0, "atk": 2650.0, "crit": 13.9, "tenacity": 16.7, "speed": 144.0, "dodge": 23.7, "hit": 16.7, "vampire": 9.5}, {"name": "魚の精霊", "hp": 12700.0, "atk": 2650.0, "crit": 13.9, "tenacity": 16.7, "speed": 144.0, "dodge": 23.7, "hit": 16.7, "vampire": 9.5}, {"name": "魚の精霊", "hp": 12700.0, "atk": 2650.0, "crit": 13.9, "tenacity": 16.7, "speed": 144.0, "dodge": 23.7, "hit": 16.7, "vampire": 9.5}]}, {"id": "910106", "coord": "4,2", "isBoss": false, "type": "通常", "xianLi": 2765000, "enemies": [{"name": "灯籠幽霊", "hp": 5800.0, "atk": 1150.0, "crit": 14.3, "tenacity": 17.1, "speed": 143.3, "dodge": 22.8, "hit": 17.1, "vampire": 9.1}, {"name": "丹青", "hp": 27150.0, "atk": 5350.0, "crit": 14.3, "tenacity": 17.1, "speed": 145.6, "dodge": 25.7, "hit": 17.1, "vampire": 10.3}, {"name": "灯籠幽霊", "hp": 5800.0, "atk": 1150.0, "crit": 14.3, "tenacity": 17.1, "speed": 143.3, "dodge": 22.8, "hit": 17.1, "vampire": 9.1}]}, {"id": "910107", "coord": "5,1", "isBoss": false, "type": "通常", "xianLi": 2100000, "enemies": [{"name": "魚の精霊", "hp": 17550.0, "atk": 3950.0, "crit": 12.9, "tenacity": 15.5, "speed": 142.5, "dodge": 21.9, "hit": 15.5, "vampire": 8.8}, {"name": "魚の精霊", "hp": 17550.0, "atk": 3950.0, "crit": 12.9, "tenacity": 15.5, "speed": 142.5, "dodge": 21.9, "hit": 15.5, "vampire": 8.8}]}, {"id": "910102", "coord": "5,4", "isBoss": false, "type": "通常", "xianLi": 2955000, "enemies": [{"name": "丹青", "hp": 19800.0, "atk": 4500.0, "crit": 14.6, "tenacity": 17.6, "speed": 146.1, "dodge": 26.3, "hit": 17.6, "vampire": 10.5}, {"name": "丹青", "hp": 19800.0, "atk": 4500.0, "crit": 14.6, "tenacity": 17.6, "speed": 146.1, "dodge": 26.3, "hit": 17.6, "vampire": 10.5}]}, {"id": "910103", "coord": "6,4", "isBoss": false, "type": "通常", "xianLi": 3150000, "enemies": [{"name": "魚の精霊", "hp": 6105.0, "atk": 1200.0, "crit": 15.0, "tenacity": 18.0, "speed": 145.4, "dodge": 25.5, "hit": 18.0, "vampire": 10.2}, {"name": "走無常", "hp": 28500.0, "atk": 5600.0, "crit": 15.0, "tenacity": 18.0, "speed": 147.8, "dodge": 28.4, "hit": 18.0, "vampire": 11.4}, {"name": "魚の精霊", "hp": 6105.0, "atk": 1200.0, "crit": 15.0, "tenacity": 18.0, "speed": 145.4, "dodge": 25.5, "hit": 18.0, "vampire": 10.2}]}, {"id": "910104", "coord": "7,3", "isBoss": false, "type": "通常", "xianLi": 3360000, "enemies": [{"name": "丹青", "hp": 6395.0, "atk": 1200.0, "crit": 15.3, "tenacity": 18.4, "speed": 147.1, "dodge": 27.6, "hit": 18.4, "vampire": 11.0}, {"name": "走無常", "hp": 29050.0, "atk": 5750.0, "crit": 15.3, "tenacity": 18.4, "speed": 148.3, "dodge": 29.1, "hit": 18.4, "vampire": 11.6}, {"name": "丹青", "hp": 6395.0, "atk": 1200.0, "crit": 15.3, "tenacity": 18.4, "speed": 147.1, "dodge": 27.6, "hit": 18.4, "vampire": 11.0}]}], "蓬莱仙島": [{"id": "1010201", "coord": "7,4", "isBoss": true, "type": "BOSS", "xianLi": 5270000, "enemies": [{"name": "拂子道士", "hp": 62400.0, "atk": 6800.0, "crit": 58.8, "tenacity": 40.6, "speed": 113.5, "dodge": 16.9, "hit": 40.6, "vampire": 0.0}]}, {"id": "1010109", "coord": "1,0", "isBoss": false, "type": "通常", "xianLi": 3045000, "enemies": [{"name": "道童", "hp": 25800.0, "atk": 3700.0, "crit": 47.2, "tenacity": 26.7, "speed": 111.1, "dodge": 13.9, "hit": 26.7, "vampire": 0.0}, {"name": "道童", "hp": 25800.0, "atk": 3700.0, "crit": 47.2, "tenacity": 26.7, "speed": 111.1, "dodge": 13.9, "hit": 26.7, "vampire": 0.0}]}, {"id": "1010105", "coord": "1,2", "isBoss": false, "type": "通常", "xianLi": 3265000, "enemies": [{"name": "道童", "hp": 7885.0, "atk": 1000.0, "crit": 47.8, "tenacity": 27.4, "speed": 111.4, "dodge": 14.2, "hit": 27.4, "vampire": 0.0}, {"name": "女幽霊", "hp": 36950.0, "atk": 4650.0, "crit": 49.2, "tenacity": 29.1, "speed": 111.4, "dodge": 14.2, "hit": 29.1, "vampire": 0.0}, {"name": "道童", "hp": 7885.0, "atk": 1000.0, "crit": 47.8, "tenacity": 27.4, "speed": 111.4, "dodge": 14.2, "hit": 27.4, "vampire": 0.0}]}, {"id": "1010101", "coord": "1,4", "isBoss": false, "type": "通常", "xianLi": 3500000, "enemies": [{"name": "女幽霊", "hp": 17950.0, "atk": 2450.0, "crit": 49.8, "tenacity": 29.8, "speed": 111.7, "dodge": 14.6, "hit": 29.8, "vampire": 0.0}, {"name": "女幽霊", "hp": 17950.0, "atk": 2450.0, "crit": 49.8, "tenacity": 29.8, "speed": 111.7, "dodge": 14.6, "hit": 29.8, "vampire": 0.0}, {"name": "女幽霊", "hp": 17950.0, "atk": 2450.0, "crit": 49.8, "tenacity": 29.8, "speed": 111.7, "dodge": 14.6, "hit": 29.8, "vampire": 0.0}]}, {"id": "1010102", "coord": "2,4", "isBoss": false, "type": "通常", "xianLi": 3745000, "enemies": [{"name": "道童", "hp": 8295.0, "atk": 1050.0, "crit": 49.0, "tenacity": 28.7, "speed": 112.0, "dodge": 15.0, "hit": 28.7, "vampire": 0.0}, {"name": "酒童子", "hp": 25800.0, "atk": 7350.0, "crit": 51.9, "tenacity": 32.3, "speed": 112.0, "dodge": 15.0, "hit": 32.3, "vampire": 0.0}, {"name": "道童", "hp": 8295.0, "atk": 1050.0, "crit": 49.0, "tenacity": 28.7, "speed": 112.0, "dodge": 15.0, "hit": 28.7, "vampire": 0.0}]}, {"id": "1010106", "coord": "3,2", "isBoss": false, "type": "通常", "xianLi": 2835000, "enemies": [{"name": "道童", "hp": 25150.0, "atk": 3600.0, "crit": 46.6, "tenacity": 26.0, "speed": 110.8, "dodge": 13.5, "hit": 26.0, "vampire": 0.0}, {"name": "道童", "hp": 25150.0, "atk": 3600.0, "crit": 46.6, "tenacity": 26.0, "speed": 110.8, "dodge": 13.5, "hit": 26.0, "vampire": 0.0}]}, {"id": "1010107", "coord": "4,2", "isBoss": false, "type": "通常", "xianLi": 4005000, "enemies": [{"name": "酒童子", "hp": 18900.0, "atk": 6150.0, "crit": 52.6, "tenacity": 33.1, "speed": 112.3, "dodge": 15.3, "hit": 33.1, "vampire": 0.0}, {"name": "酒童子", "hp": 18900.0, "atk": 6150.0, "crit": 52.6, "tenacity": 33.1, "speed": 112.3, "dodge": 15.3, "hit": 33.1, "vampire": 0.0}]}, {"id": "1010103", "coord": "4,4", "isBoss": false, "type": "通常", "xianLi": 2835000, "enemies": [{"name": "女幽霊", "hp": 25150.0, "atk": 3600.0, "crit": 48.0, "tenacity": 27.6, "speed": 110.8, "dodge": 13.5, "hit": 27.6, "vampire": 0.0}, {"name": "女幽霊", "hp": 25150.0, "atk": 3600.0, "crit": 48.0, "tenacity": 27.6, "speed": 110.8, "dodge": 13.5, "hit": 27.6, "vampire": 0.0}]}, {"id": "1010108", "coord": "6,1", "isBoss": false, "type": "通常", "xianLi": 4275000, "enemies": [{"name": "女幽霊", "hp": 8705.0, "atk": 1100.0, "crit": 51.7, "tenacity": 32.0, "speed": 112.6, "dodge": 15.7, "hit": 32.0, "vampire": 0.0}, {"name": "猫面婆", "hp": 50850.0, "atk": 4100.0, "crit": 54.8, "tenacity": 35.8, "speed": 112.6, "dodge": 15.7, "hit": 35.8, "vampire": 0.0}, {"name": "女幽霊", "hp": 8705.0, "atk": 1100.0, "crit": 51.7, "tenacity": 32.0, "speed": 112.6, "dodge": 15.7, "hit": 32.0, "vampire": 0.0}]}, {"id": "1010104", "coord": "7,3", "isBoss": false, "type": "通常", "xianLi": 4555000, "enemies": [{"name": "酒童子", "hp": 6070.0, "atk": 1650.0, "crit": 53.9, "tenacity": 34.7, "speed": 112.8, "dodge": 16.1, "hit": 34.7, "vampire": 0.0}, {"name": "猫面婆", "hp": 51950.0, "atk": 4200.0, "crit": 55.5, "tenacity": 36.6, "speed": 112.8, "dodge": 16.1, "hit": 36.6, "vampire": 0.0}, {"name": "酒童子", "hp": 6070.0, "atk": 1650.0, "crit": 53.9, "tenacity": 34.7, "speed": 112.8, "dodge": 16.1, "hit": 34.7, "vampire": 0.0}]}], "天姥山": [{"id": "1110201", "coord": "7,4", "isBoss": true, "type": "BOSS", "xianLi": 6955000, "enemies": [{"name": "狐妖", "hp": 46800.0, "atk": 11500.0, "crit": 35.4, "tenacity": 21.2, "speed": 128.3, "dodge": 42.7, "hit": 42.5, "vampire": 0.0}]}, {"id": "1110109", "coord": "1,0", "isBoss": false, "type": "通常", "xianLi": 3995000, "enemies": [{"name": "桃霊", "hp": 19200.0, "atk": 6300.0, "crit": 24.7, "tenacity": 17.4, "speed": 119.8, "dodge": 39.5, "hit": 29.6, "vampire": 0.0}, {"name": "桃霊", "hp": 19200.0, "atk": 6300.0, "crit": 24.7, "tenacity": 17.4, "speed": 119.8, "dodge": 39.5, "hit": 29.6, "vampire": 0.0}]}, {"id": "1110107", "coord": "1,1", "isBoss": false, "type": "通常", "xianLi": 4290000, "enemies": [{"name": "桃霊", "hp": 6060.0, "atk": 1650.0, "crit": 25.4, "tenacity": 17.9, "speed": 120.3, "dodge": 39.9, "hit": 30.4, "vampire": 0.0}, {"name": "木怪", "hp": 51850.0, "atk": 4200.0, "crit": 14.9, "tenacity": 30.4, "speed": 111.9, "dodge": 50.4, "hit": 17.9, "vampire": 10.1}, {"name": "桃霊", "hp": 6060.0, "atk": 1650.0, "crit": 25.4, "tenacity": 17.9, "speed": 120.3, "dodge": 39.9, "hit": 30.4, "vampire": 0.0}]}, {"id": "1110101", "coord": "1,4", "isBoss": false, "type": "通常", "xianLi": 4600000, "enemies": [{"name": "木怪", "hp": 25350.0, "atk": 2200.0, "crit": 15.3, "tenacity": 31.2, "speed": 112.2, "dodge": 51.0, "hit": 18.4, "vampire": 10.4}, {"name": "木怪", "hp": 25350.0, "atk": 2200.0, "crit": 15.3, "tenacity": 31.2, "speed": 112.2, "dodge": 51.0, "hit": 18.4, "vampire": 10.4}, {"name": "木怪", "hp": 25350.0, "atk": 2200.0, "crit": 15.3, "tenacity": 31.2, "speed": 112.2, "dodge": 51.0, "hit": 18.4, "vampire": 10.4}]}, {"id": "1110104", "coord": "2,2", "isBoss": false, "type": "通常", "xianLi": 4925000, "enemies": [{"name": "桃霊", "hp": 6315.0, "atk": 1750.0, "crit": 26.6, "tenacity": 18.8, "speed": 121.3, "dodge": 40.7, "hit": 32.0, "vampire": 0.0}, {"name": "石の精霊", "hp": 54650.0, "atk": 4400.0, "crit": 15.7, "tenacity": 33.9, "speed": 112.5, "dodge": 53.2, "hit": 18.8, "vampire": 11.3}, {"name": "桃霊", "hp": 6315.0, "atk": 1750.0, "crit": 26.6, "tenacity": 18.8, "speed": 121.3, "dodge": 40.7, "hit": 32.0, "vampire": 0.0}]}, {"id": "1110102", "coord": "2,4", "isBoss": false, "type": "通常", "xianLi": 3715000, "enemies": [{"name": "桃霊", "hp": 18650.0, "atk": 6150.0, "crit": 24.1, "tenacity": 17.0, "speed": 119.3, "dodge": 39.2, "hit": 28.9, "vampire": 0.0}, {"name": "桃霊", "hp": 18650.0, "atk": 6150.0, "crit": 24.1, "tenacity": 17.0, "speed": 119.3, "dodge": 39.2, "hit": 28.9, "vampire": 0.0}]}, {"id": "1110108", "coord": "5,1", "isBoss": false, "type": "通常", "xianLi": 3715000, "enemies": [{"name": "木怪", "hp": 35300.0, "atk": 3250.0, "crit": 14.2, "tenacity": 28.9, "speed": 111.3, "dodge": 49.1, "hit": 17.0, "vampire": 9.6}, {"name": "木怪", "hp": 35300.0, "atk": 3250.0, "crit": 14.2, "tenacity": 28.9, "speed": 111.3, "dodge": 49.1, "hit": 17.0, "vampire": 9.6}]}, {"id": "1110105", "coord": "5,2", "isBoss": false, "type": "通常", "xianLi": 5265000, "enemies": [{"name": "石の精霊", "hp": 39900.0, "atk": 3700.0, "crit": 16.1, "tenacity": 34.7, "speed": 112.8, "dodge": 53.9, "hit": 19.3, "vampire": 11.6}, {"name": "石の精霊", "hp": 39900.0, "atk": 3700.0, "crit": 16.1, "tenacity": 34.7, "speed": 112.8, "dodge": 53.9, "hit": 19.3, "vampire": 11.6}]}, {"id": "1110106", "coord": "7,2", "isBoss": false, "type": "通常", "xianLi": 5625000, "enemies": [{"name": "木怪", "hp": 12200.0, "atk": 995.0, "crit": 16.4, "tenacity": 33.5, "speed": 113.1, "dodge": 52.9, "hit": 19.7, "vampire": 11.2}, {"name": "息亀", "hp": 30350.0, "atk": 8700.0, "crit": 31.2, "tenacity": 19.7, "speed": 125.0, "dodge": 41.4, "hit": 37.5, "vampire": 0.0}, {"name": "木怪", "hp": 12200.0, "atk": 995.0, "crit": 16.4, "tenacity": 33.5, "speed": 113.1, "dodge": 52.9, "hit": 19.7, "vampire": 11.2}]}, {"id": "1110103", "coord": "7,3", "isBoss": false, "type": "通常", "xianLi": 6005000, "enemies": [{"name": "石の精霊", "hp": 12700.0, "atk": 1000.0, "crit": 16.8, "tenacity": 36.3, "speed": 113.4, "dodge": 55.3, "hit": 20.2, "vampire": 12.1}, {"name": "息亀", "hp": 31100.0, "atk": 8900.0, "crit": 31.9, "tenacity": 20.2, "speed": 125.5, "dodge": 41.8, "hit": 38.3, "vampire": 0.0}, {"name": "石の精霊", "hp": 12700.0, "atk": 1000.0, "crit": 16.8, "tenacity": 36.3, "speed": 113.4, "dodge": 55.3, "hit": 20.2, "vampire": 12.1}]}], "崑崙": [{"id": "1210201", "coord": "7,1", "isBoss": true, "type": "BOSS", "xianLi": 8955000, "enemies": [{"name": "蓮花仙", "hp": 77800.0, "atk": 8550.0, "crit": 37.0, "tenacity": 44.4, "speed": 114.8, "dodge": 18.5, "hit": 44.4, "vampire": 15.0}]}, {"id": "1210106", "coord": "0,1", "isBoss": false, "type": "通常", "xianLi": 5110000, "enemies": [{"name": "魚の精霊", "hp": 25550.0, "atk": 5850.0, "crit": 15.2, "tenacity": 18.2, "speed": 120.7, "dodge": 25.8, "hit": 18.2, "vampire": 25.3}, {"name": "魚の精霊", "hp": 25550.0, "atk": 5850.0, "crit": 15.2, "tenacity": 18.2, "speed": 120.7, "dodge": 25.8, "hit": 18.2, "vampire": 25.3}]}, {"id": "1210107", "coord": "1,1", "isBoss": false, "type": "通常", "xianLi": 5490000, "enemies": [{"name": "魚の精霊", "hp": 7980.0, "atk": 1550.0, "crit": 15.6, "tenacity": 18.7, "speed": 121.2, "dodge": 26.5, "hit": 18.7, "vampire": 25.6}, {"name": "女幽霊", "hp": 46050.0, "atk": 5850.0, "crit": 26.5, "tenacity": 31.8, "speed": 112.5, "dodge": 15.6, "hit": 31.8, "vampire": 15.0}, {"name": "魚の精霊", "hp": 7980.0, "atk": 1550.0, "crit": 15.6, "tenacity": 18.7, "speed": 121.2, "dodge": 26.5, "hit": 18.7, "vampire": 25.6}]}, {"id": "1210101", "coord": "2,3", "isBoss": false, "type": "通常", "xianLi": 4750000, "enemies": [{"name": "魚の精霊", "hp": 24900.0, "atk": 5700.0, "crit": 14.8, "tenacity": 17.8, "speed": 120.1, "dodge": 25.2, "hit": 17.8, "vampire": 25.1}, {"name": "魚の精霊", "hp": 24900.0, "atk": 5700.0, "crit": 14.8, "tenacity": 17.8, "speed": 120.1, "dodge": 25.2, "hit": 17.8, "vampire": 25.1}]}, {"id": "1210108", "coord": "3,1", "isBoss": false, "type": "通常", "xianLi": 5895000, "enemies": [{"name": "女幽霊", "hp": 22600.0, "atk": 3050.0, "crit": 27.2, "tenacity": 32.6, "speed": 112.8, "dodge": 16.0, "hit": 32.6, "vampire": 15.0}, {"name": "女幽霊", "hp": 22600.0, "atk": 3050.0, "crit": 27.2, "tenacity": 32.6, "speed": 112.8, "dodge": 16.0, "hit": 32.6, "vampire": 15.0}, {"name": "女幽霊", "hp": 22600.0, "atk": 3050.0, "crit": 27.2, "tenacity": 32.6, "speed": 112.8, "dodge": 16.0, "hit": 32.6, "vampire": 15.0}]}, {"id": "1210102", "coord": "3,3", "isBoss": false, "type": "通常", "xianLi": 6760000, "enemies": [{"name": "酒童子", "hp": 23550.0, "atk": 7750.0, "crit": 30.2, "tenacity": 36.2, "speed": 113.4, "dodge": 16.8, "hit": 36.2, "vampire": 15.0}, {"name": "酒童子", "hp": 23550.0, "atk": 7750.0, "crit": 30.2, "tenacity": 36.2, "speed": 113.4, "dodge": 16.8, "hit": 36.2, "vampire": 15.0}]}, {"id": "1210103", "coord": "4,3", "isBoss": false, "type": "通常", "xianLi": 6315000, "enemies": [{"name": "魚の精霊", "hp": 8280.0, "atk": 1650.0, "crit": 16.4, "tenacity": 19.7, "speed": 122.3, "dodge": 27.9, "hit": 19.7, "vampire": 26.1}, {"name": "酒童子", "hp": 32150.0, "atk": 9250.0, "crit": 29.5, "tenacity": 35.4, "speed": 113.1, "dodge": 16.4, "hit": 35.4, "vampire": 15.0}, {"name": "魚の精霊", "hp": 8280.0, "atk": 1650.0, "crit": 16.4, "tenacity": 19.7, "speed": 122.3, "dodge": 27.9, "hit": 19.7, "vampire": 26.1}]}, {"id": "1210109", "coord": "5,1", "isBoss": false, "type": "通常", "xianLi": 4750000, "enemies": [{"name": "女幽霊", "hp": 31200.0, "atk": 4550.0, "crit": 25.2, "tenacity": 30.2, "speed": 111.8, "dodge": 14.8, "hit": 30.2, "vampire": 15.0}, {"name": "女幽霊", "hp": 31200.0, "atk": 4550.0, "crit": 25.2, "tenacity": 30.2, "speed": 111.8, "dodge": 14.8, "hit": 30.2, "vampire": 15.0}]}, {"id": "1210104", "coord": "6,3", "isBoss": false, "type": "通常", "xianLi": 7225000, "enemies": [{"name": "女幽霊", "hp": 11100.0, "atk": 1350.0, "crit": 29.2, "tenacity": 35.0, "speed": 113.7, "dodge": 17.2, "hit": 35.0, "vampire": 15.0}, {"name": "走無常", "hp": 40600.0, "atk": 8050.0, "crit": 17.2, "tenacity": 20.6, "speed": 126.1, "dodge": 32.6, "hit": 20.6, "vampire": 28.1}, {"name": "女幽霊", "hp": 11100.0, "atk": 1350.0, "crit": 29.2, "tenacity": 35.0, "speed": 113.7, "dodge": 17.2, "hit": 35.0, "vampire": 15.0}]}, {"id": "1210105", "coord": "7,2", "isBoss": false, "type": "通常", "xianLi": 7715000, "enemies": [{"name": "酒童子", "hp": 7485.0, "atk": 2100.0, "crit": 31.6, "tenacity": 38.0, "speed": 114.1, "dodge": 17.6, "hit": 38.0, "vampire": 15.0}, {"name": "走無常", "hp": 41450.0, "atk": 8250.0, "crit": 17.6, "tenacity": 21.1, "speed": 126.7, "dodge": 33.4, "hit": 21.1, "vampire": 28.4}, {"name": "酒童子", "hp": 7485.0, "atk": 2100.0, "crit": 31.6, "tenacity": 38.0, "speed": 114.1, "dodge": 17.6, "hit": 38.0, "vampire": 15.0}]}]}, "3": {"廬山の滝": [{"id": "1310201", "coord": "7,0", "isBoss": true, "type": "BOSS", "xianLi": 11300000, "enemies": [{"name": "画皮", "hp": 85900.0, "atk": 9400.0, "crit": 38.6, "tenacity": 23.2, "speed": 130.9, "dodge": 19.3, "hit": 76.4, "vampire": 0.0}]}, {"id": "1310108", "coord": "0,2", "isBoss": false, "type": "通常", "xianLi": 6420000, "enemies": [{"name": "箒妖怪", "hp": 23550.0, "atk": 7700.0, "crit": 25.4, "tenacity": 19.0, "speed": 120.3, "dodge": 15.9, "hit": 60.5, "vampire": 0.0}, {"name": "箒妖怪", "hp": 23550.0, "atk": 7700.0, "crit": 25.4, "tenacity": 19.0, "speed": 120.3, "dodge": 15.9, "hit": 60.5, "vampire": 0.0}]}, {"id": "1310103", "coord": "0,3", "isBoss": false, "type": "通常", "xianLi": 6905000, "enemies": [{"name": "箒妖怪", "hp": 7315.0, "atk": 2050.0, "crit": 26.1, "tenacity": 19.5, "speed": 120.8, "dodge": 16.3, "hit": 61.3, "vampire": 0.0}, {"name": "桃霊", "hp": 33850.0, "atk": 9650.0, "crit": 27.7, "tenacity": 19.5, "speed": 122.1, "dodge": 16.3, "hit": 63.2, "vampire": 0.0}, {"name": "箒妖怪", "hp": 7315.0, "atk": 2050.0, "crit": 26.1, "tenacity": 19.5, "speed": 120.8, "dodge": 16.3, "hit": 61.3, "vampire": 0.0}]}, {"id": "1310104", "coord": "2,3", "isBoss": false, "type": "通常", "xianLi": 7415000, "enemies": [{"name": "桃霊", "hp": 16550.0, "atk": 5050.0, "crit": 28.4, "tenacity": 20.0, "speed": 122.7, "dodge": 16.7, "hit": 64.1, "vampire": 0.0}, {"name": "桃霊", "hp": 16550.0, "atk": 5050.0, "crit": 28.4, "tenacity": 20.0, "speed": 122.7, "dodge": 16.7, "hit": 64.1, "vampire": 0.0}, {"name": "桃霊", "hp": 16550.0, "atk": 5050.0, "crit": 28.4, "tenacity": 20.0, "speed": 122.7, "dodge": 16.7, "hit": 64.1, "vampire": 0.0}]}, {"id": "1310101", "coord": "4,4", "isBoss": false, "type": "通常", "xianLi": 7950000, "enemies": [{"name": "箒妖怪", "hp": 7710.0, "atk": 2150.0, "crit": 27.4, "tenacity": 20.5, "speed": 121.9, "dodge": 17.1, "hit": 62.9, "vampire": 0.0}, {"name": "魔眼", "hp": 53450.0, "atk": 6750.0, "crit": 30.8, "tenacity": 20.5, "speed": 124.6, "dodge": 17.1, "hit": 67.0, "vampire": 0.0}, {"name": "箒妖怪", "hp": 7710.0, "atk": 2150.0, "crit": 27.4, "tenacity": 20.5, "speed": 121.9, "dodge": 17.1, "hit": 62.9, "vampire": 0.0}]}, {"id": "1310105", "coord": "6,3", "isBoss": false, "type": "通常", "xianLi": 8515000, "enemies": [{"name": "魔眼", "hp": 39200.0, "atk": 5650.0, "crit": 31.5, "tenacity": 21.0, "speed": 125.2, "dodge": 17.5, "hit": 67.9, "vampire": 0.0}, {"name": "魔眼", "hp": 39200.0, "atk": 5650.0, "crit": 31.5, "tenacity": 21.0, "speed": 125.2, "dodge": 17.5, "hit": 67.9, "vampire": 0.0}]}, {"id": "1310102", "coord": "6,4", "isBoss": false, "type": "通常", "xianLi": 5960000, "enemies": [{"name": "箒妖怪", "hp": 22950.0, "atk": 7500.0, "crit": 24.7, "tenacity": 18.5, "speed": 119.8, "dodge": 15.5, "hit": 59.7, "vampire": 0.0}, {"name": "箒妖怪", "hp": 22950.0, "atk": 7500.0, "crit": 24.7, "tenacity": 18.5, "speed": 119.8, "dodge": 15.5, "hit": 59.7, "vampire": 0.0}]}, {"id": "1310106", "coord": "7,3", "isBoss": false, "type": "通常", "xianLi": 9110000, "enemies": [{"name": "桃霊", "hp": 8090.0, "atk": 2250.0, "crit": 30.5, "tenacity": 21.5, "speed": 124.4, "dodge": 17.9, "hit": 66.6, "vampire": 0.0}, {"name": "息亀", "hp": 37750.0, "atk": 10500.0, "crit": 34.1, "tenacity": 21.5, "speed": 127.3, "dodge": 17.9, "hit": 70.9, "vampire": 0.0}, {"name": "桃霊", "hp": 8090.0, "atk": 2250.0, "crit": 30.5, "tenacity": 21.5, "speed": 124.4, "dodge": 17.9, "hit": 66.6, "vampire": 0.0}]}, {"id": "1310109", "coord": "8,2", "isBoss": false, "type": "通常", "xianLi": 9735000, "enemies": [{"name": "魔眼", "hp": 12300.0, "atk": 1550.0, "crit": 33.0, "tenacity": 22.0, "speed": 126.4, "dodge": 18.4, "hit": 69.6, "vampire": 0.0}, {"name": "息亀", "hp": 39500.0, "atk": 10500.0, "crit": 34.9, "tenacity": 22.0, "speed": 127.9, "dodge": 18.4, "hit": 71.8, "vampire": 0.0}, {"name": "魔眼", "hp": 12300.0, "atk": 1550.0, "crit": 33.0, "tenacity": 22.0, "speed": 126.4, "dodge": 18.4, "hit": 69.6, "vampire": 0.0}]}, {"id": "1310107", "coord": "8,3", "isBoss": false, "type": "通常", "xianLi": 5960000, "enemies": [{"name": "桃霊", "hp": 22950.0, "atk": 7500.0, "crit": 26.3, "tenacity": 18.5, "speed": 121.0, "dodge": 15.5, "hit": 61.5, "vampire": 0.0}, {"name": "桃霊", "hp": 22950.0, "atk": 7500.0, "crit": 26.3, "tenacity": 18.5, "speed": 121.0, "dodge": 15.5, "hit": 61.5, "vampire": 0.0}]}], "蜀の道": [{"id": "1410201", "coord": "5,0", "isBoss": true, "type": "BOSS", "xianLi": 14050000, "enemies": [{"name": "夜叉", "hp": 117000.0, "atk": 8200.0, "crit": 20.1, "tenacity": 78.4, "speed": 116.1, "dodge": 40.3, "hit": 24.2, "vampire": 16.1}]}, {"id": "1410108", "coord": "1,1", "isBoss": false, "type": "通常", "xianLi": 7930000, "enemies": [{"name": "草の精霊", "hp": 48150.0, "atk": 4500.0, "crit": 16.6, "tenacity": 61.8, "speed": 113.2, "dodge": 26.5, "hit": 19.9, "vampire": 10.6}, {"name": "草の精霊", "hp": 48150.0, "atk": 4500.0, "crit": 16.6, "tenacity": 61.8, "speed": 113.2, "dodge": 26.5, "hit": 19.9, "vampire": 10.6}]}, {"id": "1410106", "coord": "2,2", "isBoss": false, "type": "通常", "xianLi": 8535000, "enemies": [{"name": "草の精霊", "hp": 14900.0, "atk": 1200.0, "crit": 17.0, "tenacity": 62.6, "speed": 113.6, "dodge": 27.2, "hit": 20.4, "vampire": 10.9}, {"name": "木怪", "hp": 69600.0, "atk": 5600.0, "crit": 17.0, "tenacity": 64.6, "speed": 113.6, "dodge": 28.9, "hit": 20.4, "vampire": 11.5}, {"name": "草の精霊", "hp": 14900.0, "atk": 1200.0, "crit": 17.0, "tenacity": 62.6, "speed": 113.6, "dodge": 27.2, "hit": 20.4, "vampire": 10.9}]}, {"id": "1410102", "coord": "2,3", "isBoss": false, "type": "通常", "xianLi": 9170000, "enemies": [{"name": "木怪", "hp": 33850.0, "atk": 2950.0, "crit": 17.4, "tenacity": 65.5, "speed": 113.9, "dodge": 29.6, "hit": 20.9, "vampire": 11.8}, {"name": "木怪", "hp": 33850.0, "atk": 2950.0, "crit": 17.4, "tenacity": 65.5, "speed": 113.9, "dodge": 29.6, "hit": 20.9, "vampire": 11.8}, {"name": "木怪", "hp": 33850.0, "atk": 2950.0, "crit": 17.4, "tenacity": 65.5, "speed": 113.9, "dodge": 29.6, "hit": 20.9, "vampire": 11.8}]}, {"id": "1410103", "coord": "4,3", "isBoss": false, "type": "通常", "xianLi": 7360000, "enemies": [{"name": "草の精霊", "hp": 47200.0, "atk": 4350.0, "crit": 16.1, "tenacity": 60.9, "speed": 112.9, "dodge": 25.8, "hit": 19.3, "vampire": 10.3}, {"name": "草の精霊", "hp": 47200.0, "atk": 4350.0, "crit": 16.1, "tenacity": 60.9, "speed": 112.9, "dodge": 25.8, "hit": 19.3, "vampire": 10.3}]}, {"id": "1410104", "coord": "5,3", "isBoss": false, "type": "通常", "xianLi": 9845000, "enemies": [{"name": "草の精霊", "hp": 15800.0, "atk": 1250.0, "crit": 17.8, "tenacity": 64.3, "speed": 114.3, "dodge": 28.6, "hit": 21.4, "vampire": 11.4}, {"name": "石の精霊", "hp": 72950.0, "atk": 5900.0, "crit": 17.8, "tenacity": 68.5, "speed": 114.3, "dodge": 32.1, "hit": 21.4, "vampire": 12.8}, {"name": "草の精霊", "hp": 15800.0, "atk": 1250.0, "crit": 17.8, "tenacity": 64.3, "speed": 114.3, "dodge": 28.6, "hit": 21.4, "vampire": 11.4}]}, {"id": "1410105", "coord": "6,3", "isBoss": false, "type": "通常", "xianLi": 10550000, "enemies": [{"name": "石の精霊", "hp": 53350.0, "atk": 4950.0, "crit": 18.3, "tenacity": 69.5, "speed": 114.6, "dodge": 32.9, "hit": 21.9, "vampire": 13.2}, {"name": "石の精霊", "hp": 53350.0, "atk": 4950.0, "crit": 18.3, "tenacity": 69.5, "speed": 114.6, "dodge": 32.9, "hit": 21.9, "vampire": 13.2}]}, {"id": "1410109", "coord": "7,1", "isBoss": false, "type": "通常", "xianLi": 12050000, "enemies": [{"name": "石の精霊", "hp": 16850.0, "atk": 1350.0, "crit": 19.1, "tenacity": 71.3, "speed": 115.3, "dodge": 34.5, "hit": 23.0, "vampire": 13.8}, {"name": "魔蠍", "hp": 62300.0, "atk": 7950.0, "crit": 19.1, "tenacity": 73.6, "speed": 115.3, "dodge": 36.4, "hit": 23.0, "vampire": 14.5}, {"name": "石の精霊", "hp": 16850.0, "atk": 1350.0, "crit": 19.1, "tenacity": 71.3, "speed": 115.3, "dodge": 34.5, "hit": 23.0, "vampire": 13.8}]}, {"id": "1410107", "coord": "7,2", "isBoss": false, "type": "通常", "xianLi": 11250000, "enemies": [{"name": "木怪", "hp": 16700.0, "atk": 1300.0, "crit": 18.7, "tenacity": 68.2, "speed": 115.0, "dodge": 31.8, "hit": 22.5, "vampire": 12.7}, {"name": "魔蠍", "hp": 61050.0, "atk": 7750.0, "crit": 18.7, "tenacity": 72.7, "speed": 115.0, "dodge": 35.5, "hit": 22.5, "vampire": 14.2}, {"name": "木怪", "hp": 16700.0, "atk": 1300.0, "crit": 18.7, "tenacity": 68.2, "speed": 115.0, "dodge": 31.8, "hit": 22.5, "vampire": 12.7}]}, {"id": "1410101", "coord": "7,4", "isBoss": false, "type": "通常", "xianLi": 7360000, "enemies": [{"name": "木怪", "hp": 47200.0, "atk": 4350.0, "crit": 16.1, "tenacity": 62.9, "speed": 112.9, "dodge": 27.4, "hit": 19.3, "vampire": 11.0}, {"name": "木怪", "hp": 47200.0, "atk": 4350.0, "crit": 16.1, "tenacity": 62.9, "speed": 112.9, "dodge": 27.4, "hit": 19.3, "vampire": 11.0}]}], "広寒天宮": [{"id": "1510201", "coord": "6,4", "isBoss": true, "type": "BOSS", "xianLi": 17250000, "enemies": [{"name": "玉兎の精霊", "hp": 83900.0, "atk": 13500.0, "crit": 21.0, "tenacity": 25.2, "speed": 163.6, "dodge": 42.0, "hit": 25.2, "vampire": 16.8}]}, {"id": "1510107", "coord": "1,1", "isBoss": false, "type": "通常", "xianLi": 9660000, "enemies": [{"name": "灯籠幽霊", "hp": 33500.0, "atk": 7600.0, "crit": 17.2, "tenacity": 20.7, "speed": 152.1, "dodge": 27.6, "hit": 20.7, "vampire": 11.0}, {"name": "灯籠幽霊", "hp": 33500.0, "atk": 7600.0, "crit": 17.2, "tenacity": 20.7, "speed": 152.1, "dodge": 27.6, "hit": 20.7, "vampire": 11.0}]}, {"id": "1510101", "coord": "1,4", "isBoss": false, "type": "通常", "xianLi": 8955000, "enemies": [{"name": "灯籠幽霊", "hp": 32650.0, "atk": 7400.0, "crit": 16.8, "tenacity": 20.2, "speed": 151.5, "dodge": 26.9, "hit": 20.2, "vampire": 10.7}, {"name": "灯籠幽霊", "hp": 32650.0, "atk": 7400.0, "crit": 16.8, "tenacity": 20.2, "speed": 151.5, "dodge": 26.9, "hit": 20.2, "vampire": 10.7}]}, {"id": "1510104", "coord": "2,2", "isBoss": false, "type": "通常", "xianLi": 10400000, "enemies": [{"name": "灯籠幽霊", "hp": 10250.0, "atk": 2050.0, "crit": 17.7, "tenacity": 21.2, "speed": 152.6, "dodge": 28.3, "hit": 21.2, "vampire": 11.3}, {"name": "魚の精霊", "hp": 48000.0, "atk": 9550.0, "crit": 17.7, "tenacity": 21.2, "speed": 154.1, "dodge": 30.1, "hit": 21.2, "vampire": 12.0}, {"name": "灯籠幽霊", "hp": 10250.0, "atk": 2050.0, "crit": 17.7, "tenacity": 21.2, "speed": 152.6, "dodge": 28.3, "hit": 21.2, "vampire": 11.3}]}, {"id": "1510102", "coord": "2,4", "isBoss": false, "type": "通常", "xianLi": 11150000, "enemies": [{"name": "魚の精霊", "hp": 23500.0, "atk": 5000.0, "crit": 18.1, "tenacity": 21.8, "speed": 154.7, "dodge": 30.8, "hit": 21.8, "vampire": 12.3}, {"name": "魚の精霊", "hp": 23500.0, "atk": 5000.0, "crit": 18.1, "tenacity": 21.8, "speed": 154.7, "dodge": 30.8, "hit": 21.8, "vampire": 12.3}, {"name": "魚の精霊", "hp": 23500.0, "atk": 5000.0, "crit": 18.1, "tenacity": 21.8, "speed": 154.7, "dodge": 30.8, "hit": 21.8, "vampire": 12.3}]}, {"id": "1510105", "coord": "3,2", "isBoss": false, "type": "通常", "xianLi": 12000000, "enemies": [{"name": "灯籠幽霊", "hp": 10800.0, "atk": 2150.0, "crit": 18.6, "tenacity": 22.3, "speed": 153.8, "dodge": 29.8, "hit": 22.3, "vampire": 11.9}, {"name": "丹青", "hp": 50600.0, "atk": 10000.0, "crit": 18.6, "tenacity": 22.3, "speed": 156.8, "dodge": 33.5, "hit": 22.3, "vampire": 13.4}, {"name": "灯籠幽霊", "hp": 10800.0, "atk": 2150.0, "crit": 18.6, "tenacity": 22.3, "speed": 153.8, "dodge": 29.8, "hit": 22.3, "vampire": 11.9}]}, {"id": "1510106", "coord": "5,2", "isBoss": false, "type": "通常", "xianLi": 12850000, "enemies": [{"name": "丹青", "hp": 36950.0, "atk": 8400.0, "crit": 19.0, "tenacity": 22.9, "speed": 157.4, "dodge": 34.3, "hit": 22.9, "vampire": 13.7}, {"name": "丹青", "hp": 36950.0, "atk": 8400.0, "crit": 19.0, "tenacity": 22.9, "speed": 157.4, "dodge": 34.3, "hit": 22.9, "vampire": 13.7}]}, {"id": "1510103", "coord": "5,3", "isBoss": false, "type": "通常", "xianLi": 14750000, "enemies": [{"name": "丹青", "hp": 11600.0, "atk": 2300.0, "crit": 19.9, "tenacity": 23.9, "speed": 158.7, "dodge": 35.9, "hit": 23.9, "vampire": 14.4}, {"name": "走無常", "hp": 55450.0, "atk": 10500.0, "crit": 19.9, "tenacity": 23.9, "speed": 160.3, "dodge": 37.9, "hit": 23.9, "vampire": 15.2}, {"name": "丹青", "hp": 11600.0, "atk": 2300.0, "crit": 19.9, "tenacity": 23.9, "speed": 158.7, "dodge": 35.9, "hit": 23.9, "vampire": 14.4}]}, {"id": "1510108", "coord": "6,1", "isBoss": false, "type": "通常", "xianLi": 13800000, "enemies": [{"name": "魚の精霊", "hp": 11350.0, "atk": 2250.0, "crit": 19.5, "tenacity": 23.4, "speed": 156.5, "dodge": 33.1, "hit": 23.4, "vampire": 13.3}, {"name": "走無常", "hp": 53000.0, "atk": 10500.0, "crit": 19.5, "tenacity": 23.4, "speed": 159.6, "dodge": 37.0, "hit": 23.4, "vampire": 14.8}, {"name": "魚の精霊", "hp": 11350.0, "atk": 2250.0, "crit": 19.5, "tenacity": 23.4, "speed": 156.5, "dodge": 33.1, "hit": 23.4, "vampire": 13.3}]}, {"id": "1510109", "coord": "7,1", "isBoss": false, "type": "通常", "xianLi": 8955000, "enemies": [{"name": "魚の精霊", "hp": 32650.0, "atk": 7400.0, "crit": 16.8, "tenacity": 20.2, "speed": 152.8, "dodge": 28.6, "hit": 20.2, "vampire": 11.4}, {"name": "魚の精霊", "hp": 32650.0, "atk": 7400.0, "crit": 16.8, "tenacity": 20.2, "speed": 152.8, "dodge": 28.6, "hit": 20.2, "vampire": 11.4}]}], "蓬莱仙島": [{"id": "1610201", "coord": "5,3", "isBoss": true, "type": "BOSS", "xianLi": 20900000, "enemies": [{"name": "拂子道士", "hp": 109500.0, "atk": 12000.0, "crit": 73.7, "tenacity": 52.4, "speed": 117.5, "dodge": 21.9, "hit": 52.4, "vampire": 0.0}]}, {"id": "1610106", "coord": "1,1", "isBoss": false, "type": "通常", "xianLi": 11600000, "enemies": [{"name": "道童", "hp": 45200.0, "atk": 6550.0, "crit": 58.7, "tenacity": 34.5, "speed": 114.4, "dodge": 18.0, "hit": 34.5, "vampire": 0.0}, {"name": "道童", "hp": 45200.0, "atk": 6550.0, "crit": 58.7, "tenacity": 34.5, "speed": 114.4, "dodge": 18.0, "hit": 34.5, "vampire": 0.0}]}, {"id": "1610107", "coord": "2,1", "isBoss": false, "type": "通常", "xianLi": 12500000, "enemies": [{"name": "道童", "hp": 13950.0, "atk": 1750.0, "crit": 59.5, "tenacity": 35.4, "speed": 114.7, "dodge": 18.4, "hit": 35.4, "vampire": 0.0}, {"name": "女幽霊", "hp": 64600.0, "atk": 8250.0, "crit": 61.3, "tenacity": 37.6, "speed": 114.7, "dodge": 18.4, "hit": 37.6, "vampire": 0.0}, {"name": "道童", "hp": 13950.0, "atk": 1750.0, "crit": 59.5, "tenacity": 35.4, "speed": 114.7, "dodge": 18.4, "hit": 35.4, "vampire": 0.0}]}, {"id": "1610102", "coord": "2,3", "isBoss": false, "type": "通常", "xianLi": 10750000, "enemies": [{"name": "道童", "hp": 43900.0, "atk": 6400.0, "crit": 58.0, "tenacity": 33.6, "speed": 114.0, "dodge": 17.5, "hit": 33.6, "vampire": 0.0}, {"name": "道童", "hp": 43900.0, "atk": 6400.0, "crit": 58.0, "tenacity": 33.6, "speed": 114.0, "dodge": 17.5, "hit": 33.6, "vampire": 0.0}]}, {"id": "1610108", "coord": "3,1", "isBoss": false, "type": "通常", "xianLi": 13500000, "enemies": [{"name": "女幽霊", "hp": 31750.0, "atk": 4300.0, "crit": 62.1, "tenacity": 38.5, "speed": 115.1, "dodge": 18.9, "hit": 38.5, "vampire": 0.0}, {"name": "女幽霊", "hp": 31750.0, "atk": 4300.0, "crit": 62.1, "tenacity": 38.5, "speed": 115.1, "dodge": 18.9, "hit": 38.5, "vampire": 0.0}, {"name": "女幽霊", "hp": 31750.0, "atk": 4300.0, "crit": 62.1, "tenacity": 38.5, "speed": 115.1, "dodge": 18.9, "hit": 38.5, "vampire": 0.0}]}, {"id": "1610103", "coord": "3,3", "isBoss": false, "type": "通常", "xianLi": 14500000, "enemies": [{"name": "道童", "hp": 14600.0, "atk": 1850.0, "crit": 61.0, "tenacity": 37.2, "speed": 115.5, "dodge": 19.4, "hit": 37.2, "vampire": 0.0}, {"name": "酒童子", "hp": 45300.0, "atk": 13000.0, "crit": 64.8, "tenacity": 41.8, "speed": 115.5, "dodge": 19.4, "hit": 41.8, "vampire": 0.0}, {"name": "道童", "hp": 14600.0, "atk": 1850.0, "crit": 61.0, "tenacity": 37.2, "speed": 115.5, "dodge": 19.4, "hit": 37.2, "vampire": 0.0}]}, {"id": "1610109", "coord": "5,0", "isBoss": false, "type": "通常", "xianLi": 15550000, "enemies": [{"name": "酒童子", "hp": 34400.0, "atk": 10500.0, "crit": 65.7, "tenacity": 42.8, "speed": 115.9, "dodge": 19.8, "hit": 42.8, "vampire": 0.0}, {"name": "酒童子", "hp": 34400.0, "atk": 10500.0, "crit": 65.7, "tenacity": 42.8, "speed": 115.9, "dodge": 19.8, "hit": 42.8, "vampire": 0.0}]}, {"id": "1610104", "coord": "7,2", "isBoss": false, "type": "通常", "xianLi": 16700000, "enemies": [{"name": "女幽霊", "hp": 15200.0, "atk": 1950.0, "crit": 64.5, "tenacity": 41.4, "speed": 116.2, "dodge": 20.3, "hit": 41.4, "vampire": 0.0}, {"name": "猫面婆", "hp": 89250.0, "atk": 7250.0, "crit": 68.6, "tenacity": 46.3, "speed": 116.2, "dodge": 20.3, "hit": 46.3, "vampire": 0.0}, {"name": "女幽霊", "hp": 15200.0, "atk": 1950.0, "crit": 64.5, "tenacity": 41.4, "speed": 116.2, "dodge": 20.3, "hit": 41.4, "vampire": 0.0}]}, {"id": "1610105", "coord": "8,2", "isBoss": false, "type": "通常", "xianLi": 17900000, "enemies": [{"name": "酒童子", "hp": 10500.0, "atk": 2950.0, "crit": 67.4, "tenacity": 44.8, "speed": 116.6, "dodge": 20.8, "hit": 44.8, "vampire": 0.0}, {"name": "猫面婆", "hp": 91550.0, "atk": 7400.0, "crit": 69.4, "tenacity": 47.3, "speed": 116.6, "dodge": 20.8, "hit": 47.3, "vampire": 0.0}, {"name": "酒童子", "hp": 10500.0, "atk": 2950.0, "crit": 67.4, "tenacity": 44.8, "speed": 116.6, "dodge": 20.8, "hit": 44.8, "vampire": 0.0}]}, {"id": "1610101", "coord": "8,4", "isBoss": false, "type": "通常", "xianLi": 10750000, "enemies": [{"name": "女幽霊", "hp": 43900.0, "atk": 6400.0, "crit": 59.7, "tenacity": 35.7, "speed": 114.0, "dodge": 17.5, "hit": 35.7, "vampire": 0.0}, {"name": "女幽霊", "hp": 43900.0, "atk": 6400.0, "crit": 59.7, "tenacity": 35.7, "speed": 114.0, "dodge": 17.5, "hit": 35.7, "vampire": 0.0}]}], "天姥山": [{"id": "1710201", "coord": "8,3", "isBoss": true, "type": "BOSS", "xianLi": 25100000, "enemies": [{"name": "狐妖", "hp": 79800.0, "atk": 19000.0, "crit": 45.4, "tenacity": 27.3, "speed": 136.4, "dodge": 52.7, "hit": 54.5, "vampire": 0.0}]}, {"id": "1710104", "coord": "0,2", "isBoss": false, "type": "通常", "xianLi": 13850000, "enemies": [{"name": "桃霊", "hp": 32450.0, "atk": 10500.0, "crit": 31.7, "tenacity": 22.4, "speed": 125.4, "dodge": 48.7, "hit": 38.1, "vampire": 0.0}, {"name": "桃霊", "hp": 32450.0, "atk": 10500.0, "crit": 31.7, "tenacity": 22.4, "speed": 125.4, "dodge": 48.7, "hit": 38.1, "vampire": 0.0}]}, {"id": "1710102", "coord": "1,3", "isBoss": false, "type": "通常", "xianLi": 14950000, "enemies": [{"name": "桃霊", "hp": 10050.0, "atk": 2800.0, "crit": 32.6, "tenacity": 23.0, "speed": 126.0, "dodge": 49.2, "hit": 39.1, "vampire": 0.0}, {"name": "魔眼", "hp": 69350.0, "atk": 8850.0, "crit": 34.5, "tenacity": 23.0, "speed": 127.6, "dodge": 49.2, "hit": 41.4, "vampire": 0.0}, {"name": "桃霊", "hp": 10050.0, "atk": 2800.0, "crit": 32.6, "tenacity": 23.0, "speed": 126.0, "dodge": 49.2, "hit": 39.1, "vampire": 0.0}]}, {"id": "1710106", "coord": "2,1", "isBoss": false, "type": "通常", "xianLi": 17350000, "enemies": [{"name": "桃霊", "hp": 10500.0, "atk": 2950.0, "crit": 34.2, "tenacity": 24.2, "speed": 127.4, "dodge": 50.1, "hit": 41.1, "vampire": 0.0}, {"name": "石の精霊", "hp": 91550.0, "atk": 7400.0, "crit": 20.1, "tenacity": 43.5, "speed": 116.1, "dodge": 66.2, "hit": 24.2, "vampire": 14.5}, {"name": "桃霊", "hp": 10500.0, "atk": 2950.0, "crit": 34.2, "tenacity": 24.2, "speed": 127.4, "dodge": 50.1, "hit": 41.1, "vampire": 0.0}]}, {"id": "1710105", "coord": "2,2", "isBoss": false, "type": "通常", "xianLi": 16100000, "enemies": [{"name": "魔眼", "hp": 33800.0, "atk": 4650.0, "crit": 35.4, "tenacity": 23.6, "speed": 128.3, "dodge": 49.6, "hit": 42.4, "vampire": 0.0}, {"name": "魔眼", "hp": 33800.0, "atk": 4650.0, "crit": 35.4, "tenacity": 23.6, "speed": 128.3, "dodge": 49.6, "hit": 42.4, "vampire": 0.0}, {"name": "魔眼", "hp": 33800.0, "atk": 4650.0, "crit": 35.4, "tenacity": 23.6, "speed": 128.3, "dodge": 49.6, "hit": 42.4, "vampire": 0.0}]}, {"id": "1710101", "coord": "4,4", "isBoss": false, "type": "通常", "xianLi": 12850000, "enemies": [{"name": "魔眼", "hp": 47200.0, "atk": 6850.0, "crit": 32.7, "tenacity": 21.8, "speed": 126.2, "dodge": 48.2, "hit": 39.3, "vampire": 0.0}, {"name": "魔眼", "hp": 47200.0, "atk": 6850.0, "crit": 32.7, "tenacity": 21.8, "speed": 126.2, "dodge": 48.2, "hit": 39.3, "vampire": 0.0}]}, {"id": "1710107", "coord": "5,1", "isBoss": false, "type": "通常", "xianLi": 12850000, "enemies": [{"name": "桃霊", "hp": 32300.0, "atk": 10000.0, "crit": 30.9, "tenacity": 21.8, "speed": 124.7, "dodge": 48.2, "hit": 37.1, "vampire": 0.0}, {"name": "桃霊", "hp": 32300.0, "atk": 10000.0, "crit": 30.9, "tenacity": 21.8, "speed": 124.7, "dodge": 48.2, "hit": 37.1, "vampire": 0.0}]}, {"id": "1710103", "coord": "5,3", "isBoss": false, "type": "通常", "xianLi": 18650000, "enemies": [{"name": "石の精霊", "hp": 67050.0, "atk": 6200.0, "crit": 20.6, "tenacity": 44.5, "speed": 116.5, "dodge": 67.1, "hit": 24.7, "vampire": 14.8}, {"name": "石の精霊", "hp": 67050.0, "atk": 6200.0, "crit": 20.6, "tenacity": 44.5, "speed": 116.5, "dodge": 67.1, "hit": 24.7, "vampire": 14.8}]}, {"id": "1710108", "coord": "6,1", "isBoss": false, "type": "通常", "xianLi": 20000000, "enemies": [{"name": "魔眼", "hp": 16650.0, "atk": 2050.0, "crit": 38.0, "tenacity": 25.3, "speed": 130.4, "dodge": 51.1, "hit": 45.6, "vampire": 0.0}, {"name": "魔蠍", "hp": 76400.0, "atk": 9750.0, "crit": 21.1, "tenacity": 48.1, "speed": 116.9, "dodge": 70.1, "hit": 25.3, "vampire": 16.0}, {"name": "魔眼", "hp": 16650.0, "atk": 2050.0, "crit": 38.0, "tenacity": 25.3, "speed": 130.4, "dodge": 51.1, "hit": 45.6, "vampire": 0.0}]}, {"id": "1710109", "coord": "7,1", "isBoss": false, "type": "通常", "xianLi": 21450000, "enemies": [{"name": "石の精霊", "hp": 21050.0, "atk": 1700.0, "crit": 21.6, "tenacity": 46.6, "speed": 117.3, "dodge": 68.9, "hit": 25.9, "vampire": 15.5}, {"name": "魔蠍", "hp": 78350.0, "atk": 9950.0, "crit": 21.6, "tenacity": 49.2, "speed": 117.3, "dodge": 71.0, "hit": 25.9, "vampire": 16.4}, {"name": "石の精霊", "hp": 21050.0, "atk": 1700.0, "crit": 21.6, "tenacity": 46.6, "speed": 117.3, "dodge": 68.9, "hit": 25.9, "vampire": 15.5}]}], "崑崙": [{"id": "1810201", "coord": "7,3", "isBoss": true, "type": "BOSS", "xianLi": 29900000, "enemies": [{"name": "蓮花仙", "hp": 128000.0, "atk": 13500.0, "crit": 47.2, "tenacity": 56.7, "speed": 118.9, "dodge": 23.6, "hit": 56.7, "vampire": 20.0}]}, {"id": "1810103", "coord": "0,2", "isBoss": false, "type": "通常", "xianLi": 16400000, "enemies": [{"name": "魚の精霊", "hp": 41400.0, "atk": 9400.0, "crit": 19.4, "tenacity": 23.3, "speed": 126.4, "dodge": 33.0, "hit": 23.3, "vampire": 33.2}, {"name": "魚の精霊", "hp": 41400.0, "atk": 9400.0, "crit": 19.4, "tenacity": 23.3, "speed": 126.4, "dodge": 33.0, "hit": 23.3, "vampire": 33.2}]}, {"id": "1810104", "coord": "1,2", "isBoss": false, "type": "通常", "xianLi": 17700000, "enemies": [{"name": "魚の精霊", "hp": 12850.0, "atk": 2500.0, "crit": 19.9, "tenacity": 23.9, "speed": 127.1, "dodge": 33.8, "hit": 23.9, "vampire": 33.5}, {"name": "丹青", "hp": 60900.0, "atk": 11500.0, "crit": 19.9, "tenacity": 23.9, "speed": 128.7, "dodge": 35.8, "hit": 23.9, "vampire": 34.3}, {"name": "魚の精霊", "hp": 12850.0, "atk": 2500.0, "crit": 19.9, "tenacity": 23.9, "speed": 127.1, "dodge": 33.8, "hit": 23.9, "vampire": 33.5}]}, {"id": "1810105", "coord": "3,2", "isBoss": false, "type": "通常", "xianLi": 19100000, "enemies": [{"name": "丹青", "hp": 28950.0, "atk": 6200.0, "crit": 20.4, "tenacity": 24.5, "speed": 129.4, "dodge": 36.7, "hit": 24.5, "vampire": 34.7}, {"name": "丹青", "hp": 28950.0, "atk": 6200.0, "crit": 20.4, "tenacity": 24.5, "speed": 129.4, "dodge": 36.7, "hit": 24.5, "vampire": 34.7}, {"name": "丹青", "hp": 28950.0, "atk": 6200.0, "crit": 20.4, "tenacity": 24.5, "speed": 129.4, "dodge": 36.7, "hit": 24.5, "vampire": 34.7}]}, {"id": "1810102", "coord": "3,3", "isBoss": false, "type": "通常", "xianLi": 20550000, "enemies": [{"name": "魚の精霊", "hp": 13400.0, "atk": 2650.0, "crit": 20.9, "tenacity": 25.1, "speed": 128.4, "dodge": 35.5, "hit": 25.1, "vampire": 34.2}, {"name": "酒童子", "hp": 53350.0, "atk": 14500.0, "crit": 37.6, "tenacity": 45.2, "speed": 116.7, "dodge": 20.9, "hit": 45.2, "vampire": 20.0}, {"name": "魚の精霊", "hp": 13400.0, "atk": 2650.0, "crit": 20.9, "tenacity": 25.1, "speed": 128.4, "dodge": 35.5, "hit": 25.1, "vampire": 34.2}]}, {"id": "1810107", "coord": "4,1", "isBoss": false, "type": "通常", "xianLi": 22100000, "enemies": [{"name": "酒童子", "hp": 37950.0, "atk": 12500.0, "crit": 38.5, "tenacity": 46.3, "speed": 117.1, "dodge": 21.4, "hit": 46.3, "vampire": 20.0}, {"name": "酒童子", "hp": 37950.0, "atk": 12500.0, "crit": 38.5, "tenacity": 46.3, "speed": 117.1, "dodge": 21.4, "hit": 46.3, "vampire": 20.0}]}, {"id": "1810101", "coord": "4,4", "isBoss": false, "type": "通常", "xianLi": 15200000, "enemies": [{"name": "魚の精霊", "hp": 40350.0, "atk": 9150.0, "crit": 18.9, "tenacity": 22.7, "speed": 125.7, "dodge": 32.1, "hit": 22.7, "vampire": 32.8}, {"name": "魚の精霊", "hp": 40350.0, "atk": 9150.0, "crit": 18.9, "tenacity": 22.7, "speed": 125.7, "dodge": 32.1, "hit": 22.7, "vampire": 32.8}]}, {"id": "1810108", "coord": "5,1", "isBoss": false, "type": "通常", "xianLi": 15200000, "enemies": [{"name": "丹青", "hp": 40350.0, "atk": 9150.0, "crit": 18.9, "tenacity": 22.7, "speed": 127.2, "dodge": 34.0, "hit": 22.7, "vampire": 33.6}, {"name": "丹青", "hp": 40350.0, "atk": 9150.0, "crit": 18.9, "tenacity": 22.7, "speed": 127.2, "dodge": 34.0, "hit": 22.7, "vampire": 33.6}]}, {"id": "1810109", "coord": "7,1", "isBoss": false, "type": "通常", "xianLi": 23750000, "enemies": [{"name": "丹青", "hp": 14150.0, "atk": 2750.0, "crit": 21.9, "tenacity": 26.3, "speed": 131.6, "dodge": 39.5, "hit": 26.3, "vampire": 35.8}, {"name": "猫面婆", "hp": 102000.0, "atk": 8300.0, "crit": 41.7, "tenacity": 50.0, "speed": 117.5, "dodge": 21.9, "hit": 50.0, "vampire": 20.0}, {"name": "丹青", "hp": 14150.0, "atk": 2750.0, "crit": 21.9, "tenacity": 26.3, "speed": 131.6, "dodge": 39.5, "hit": 26.3, "vampire": 35.8}]}, {"id": "1810106", "coord": "8,2", "isBoss": false, "type": "通常", "xianLi": 25500000, "enemies": [{"name": "酒童子", "hp": 12000.0, "atk": 3400.0, "crit": 40.4, "tenacity": 48.4, "speed": 117.9, "dodge": 22.4, "hit": 48.4, "vampire": 20.0}, {"name": "猫面婆", "hp": 104500.0, "atk": 8500.0, "crit": 42.6, "tenacity": 51.1, "speed": 117.9, "dodge": 22.4, "hit": 51.1, "vampire": 20.0}, {"name": "酒童子", "hp": 12000.0, "atk": 3400.0, "crit": 40.4, "tenacity": 48.4, "speed": 117.9, "dodge": 22.4, "hit": 48.4, "vampire": 20.0}]}]}, "4": {"廬山の滝": [{"id": "1910201", "coord": "5,3", "isBoss": true, "type": "BOSS", "xianLi": 35300000, "enemies": [{"name": "画皮", "hp": 135000.0, "atk": 14500.0, "crit": 49.0, "tenacity": 29.4, "speed": 139.2, "dodge": 24.5, "hit": 93.8, "vampire": 0.0}]}, {"id": "1910104", "coord": "0,2", "isBoss": false, "type": "通常", "xianLi": 20800000, "enemies": [{"name": "箒妖怪", "hp": 11350.0, "atk": 3200.0, "crit": 33.0, "tenacity": 24.8, "speed": 126.4, "dodge": 20.7, "hit": 74.7, "vampire": 0.0}, {"name": "桃霊", "hp": 52800.0, "atk": 15000.0, "crit": 35.1, "tenacity": 24.8, "speed": 128.1, "dodge": 20.7, "hit": 77.1, "vampire": 0.0}, {"name": "箒妖怪", "hp": 11350.0, "atk": 3200.0, "crit": 33.0, "tenacity": 24.8, "speed": 126.4, "dodge": 20.7, "hit": 74.7, "vampire": 0.0}]}, {"id": "1910105", "coord": "1,2", "isBoss": false, "type": "通常", "xianLi": 19250000, "enemies": [{"name": "箒妖怪", "hp": 36650.0, "atk": 12000.0, "crit": 32.2, "tenacity": 24.2, "speed": 125.8, "dodge": 20.1, "hit": 73.6, "vampire": 0.0}, {"name": "箒妖怪", "hp": 36650.0, "atk": 12000.0, "crit": 32.2, "tenacity": 24.2, "speed": 125.8, "dodge": 20.1, "hit": 73.6, "vampire": 0.0}]}, {"id": "1910102", "coord": "2,3", "isBoss": false, "type": "通常", "xianLi": 22450000, "enemies": [{"name": "桃霊", "hp": 25700.0, "atk": 7900.0, "crit": 36.0, "tenacity": 25.4, "speed": 128.8, "dodge": 21.2, "hit": 78.2, "vampire": 0.0}, {"name": "桃霊", "hp": 25700.0, "atk": 7900.0, "crit": 36.0, "tenacity": 25.4, "speed": 128.8, "dodge": 21.2, "hit": 78.2, "vampire": 0.0}, {"name": "桃霊", "hp": 25700.0, "atk": 7900.0, "crit": 36.0, "tenacity": 25.4, "speed": 128.8, "dodge": 21.2, "hit": 78.2, "vampire": 0.0}]}, {"id": "1910106", "coord": "3,2", "isBoss": false, "type": "通常", "xianLi": 17800000, "enemies": [{"name": "箒妖怪", "hp": 36300.0, "atk": 11500.0, "crit": 31.4, "tenacity": 23.5, "speed": 125.1, "dodge": 19.6, "hit": 72.6, "vampire": 0.0}, {"name": "箒妖怪", "hp": 36300.0, "atk": 11500.0, "crit": 31.4, "tenacity": 23.5, "speed": 125.1, "dodge": 19.6, "hit": 72.6, "vampire": 0.0}]}, {"id": "1910108", "coord": "4,1", "isBoss": false, "type": "通常", "xianLi": 24200000, "enemies": [{"name": "箒妖怪", "hp": 11800.0, "atk": 3400.0, "crit": 34.7, "tenacity": 26.0, "speed": 127.8, "dodge": 21.7, "hit": 76.7, "vampire": 0.0}, {"name": "魔眼", "hp": 83300.0, "atk": 10500.0, "crit": 39.1, "tenacity": 26.0, "speed": 131.3, "dodge": 21.7, "hit": 81.9, "vampire": 0.0}, {"name": "箒妖怪", "hp": 11800.0, "atk": 3400.0, "crit": 34.7, "tenacity": 26.0, "speed": 127.8, "dodge": 21.7, "hit": 76.7, "vampire": 0.0}]}, {"id": "1910109", "coord": "5,1", "isBoss": false, "type": "通常", "xianLi": 26050000, "enemies": [{"name": "魔眼", "hp": 60650.0, "atk": 8850.0, "crit": 40.0, "tenacity": 26.7, "speed": 132.0, "dodge": 22.2, "hit": 83.0, "vampire": 0.0}, {"name": "魔眼", "hp": 60650.0, "atk": 8850.0, "crit": 40.0, "tenacity": 26.7, "speed": 132.0, "dodge": 22.2, "hit": 83.0, "vampire": 0.0}]}, {"id": "1910107", "coord": "6,2", "isBoss": false, "type": "通常", "xianLi": 28000000, "enemies": [{"name": "桃霊", "hp": 12400.0, "atk": 3550.0, "crit": 38.7, "tenacity": 27.3, "speed": 130.9, "dodge": 22.8, "hit": 81.4, "vampire": 0.0}, {"name": "息亀", "hp": 58250.0, "atk": 16500.0, "crit": 43.2, "tenacity": 27.3, "speed": 134.6, "dodge": 22.8, "hit": 86.9, "vampire": 0.0}, {"name": "桃霊", "hp": 12400.0, "atk": 3550.0, "crit": 38.7, "tenacity": 27.3, "speed": 130.9, "dodge": 22.8, "hit": 81.4, "vampire": 0.0}]}, {"id": "1910103", "coord": "8,3", "isBoss": false, "type": "通常", "xianLi": 30050000, "enemies": [{"name": "魔眼", "hp": 19250.0, "atk": 2400.0, "crit": 41.9, "tenacity": 27.9, "speed": 133.5, "dodge": 23.3, "hit": 85.3, "vampire": 0.0}, {"name": "息亀", "hp": 59200.0, "atk": 17000.0, "crit": 44.2, "tenacity": 27.9, "speed": 135.4, "dodge": 23.3, "hit": 88.1, "vampire": 0.0}, {"name": "魔眼", "hp": 19250.0, "atk": 2400.0, "crit": 41.9, "tenacity": 27.9, "speed": 133.5, "dodge": 23.3, "hit": 85.3, "vampire": 0.0}]}, {"id": "1910101", "coord": "8,4", "isBoss": false, "type": "通常", "xianLi": 17800000, "enemies": [{"name": "桃霊", "hp": 36300.0, "atk": 11500.0, "crit": 33.3, "tenacity": 23.5, "speed": 126.7, "dodge": 19.6, "hit": 75.0, "vampire": 0.0}, {"name": "桃霊", "hp": 36300.0, "atk": 11500.0, "crit": 33.3, "tenacity": 23.5, "speed": 126.7, "dodge": 19.6, "hit": 75.0, "vampire": 0.0}]}], "蜀の道": [{"id": "2010201", "coord": "6,2", "isBoss": true, "type": "BOSS", "xianLi": 41500000, "enemies": [{"name": "夜叉", "hp": 183500.0, "atk": 12000.0, "crit": 25.4, "tenacity": 96.0, "speed": 120.3, "dodge": 50.8, "hit": 30.5, "vampire": 20.3}]}, {"id": "2010109", "coord": "0,1", "isBoss": false, "type": "通常", "xianLi": 22500000, "enemies": [{"name": "草の精霊", "hp": 72850.0, "atk": 6800.0, "crit": 20.9, "tenacity": 75.1, "speed": 116.7, "dodge": 33.4, "hit": 25.1, "vampire": 13.4}, {"name": "草の精霊", "hp": 72850.0, "atk": 6800.0, "crit": 20.9, "tenacity": 75.1, "speed": 116.7, "dodge": 33.4, "hit": 25.1, "vampire": 13.4}]}, {"id": "2010106", "coord": "0,2", "isBoss": false, "type": "通常", "xianLi": 24300000, "enemies": [{"name": "草の精霊", "hp": 22700.0, "atk": 1800.0, "crit": 21.4, "tenacity": 76.1, "speed": 117.1, "dodge": 34.3, "hit": 25.7, "vampire": 13.7}, {"name": "木怪", "hp": 104500.0, "atk": 8500.0, "crit": 21.4, "tenacity": 78.7, "speed": 117.1, "dodge": 36.4, "hit": 25.7, "vampire": 14.6}, {"name": "草の精霊", "hp": 22700.0, "atk": 1800.0, "crit": 21.4, "tenacity": 76.1, "speed": 117.1, "dodge": 34.3, "hit": 25.7, "vampire": 13.7}]}, {"id": "2010103", "coord": "2,3", "isBoss": false, "type": "通常", "xianLi": 26250000, "enemies": [{"name": "木怪", "hp": 51350.0, "atk": 4450.0, "crit": 22.0, "tenacity": 79.8, "speed": 117.6, "dodge": 37.3, "hit": 26.4, "vampire": 14.9}, {"name": "木怪", "hp": 51350.0, "atk": 4450.0, "crit": 22.0, "tenacity": 79.8, "speed": 117.6, "dodge": 37.3, "hit": 26.4, "vampire": 14.9}, {"name": "木怪", "hp": 51350.0, "atk": 4450.0, "crit": 22.0, "tenacity": 79.8, "speed": 117.6, "dodge": 37.3, "hit": 26.4, "vampire": 14.9}]}, {"id": "2010107", "coord": "4,2", "isBoss": false, "type": "通常", "xianLi": 20750000, "enemies": [{"name": "木怪", "hp": 71150.0, "atk": 6600.0, "crit": 20.3, "tenacity": 76.5, "speed": 116.3, "dodge": 34.6, "hit": 24.4, "vampire": 13.8}, {"name": "木怪", "hp": 71150.0, "atk": 6600.0, "crit": 20.3, "tenacity": 76.5, "speed": 116.3, "dodge": 34.6, "hit": 24.4, "vampire": 13.8}]}, {"id": "2010104", "coord": "4,3", "isBoss": false, "type": "通常", "xianLi": 28300000, "enemies": [{"name": "草の精霊", "hp": 23750.0, "atk": 1900.0, "crit": 22.5, "tenacity": 78.2, "speed": 118.0, "dodge": 36.0, "hit": 27.0, "vampire": 14.4}, {"name": "石の精霊", "hp": 109500.0, "atk": 8950.0, "crit": 22.5, "tenacity": 83.6, "speed": 118.0, "dodge": 40.5, "hit": 27.0, "vampire": 16.2}, {"name": "草の精霊", "hp": 23750.0, "atk": 1900.0, "crit": 22.5, "tenacity": 78.2, "speed": 118.0, "dodge": 36.0, "hit": 27.0, "vampire": 14.4}]}, {"id": "2010101", "coord": "4,4", "isBoss": false, "type": "通常", "xianLi": 30500000, "enemies": [{"name": "石の精霊", "hp": 80550.0, "atk": 7500.0, "crit": 23.1, "tenacity": 84.8, "speed": 118.4, "dodge": 41.5, "hit": 27.7, "vampire": 16.6}, {"name": "石の精霊", "hp": 80550.0, "atk": 7500.0, "crit": 23.1, "tenacity": 84.8, "speed": 118.4, "dodge": 41.5, "hit": 27.7, "vampire": 16.6}]}, {"id": "2010102", "coord": "6,4", "isBoss": false, "type": "通常", "xianLi": 32800000, "enemies": [{"name": "木怪", "hp": 24800.0, "atk": 2000.0, "crit": 23.6, "tenacity": 83.1, "speed": 118.9, "dodge": 40.1, "hit": 28.3, "vampire": 16.0}, {"name": "魔蠍", "hp": 94050.0, "atk": 11500.0, "crit": 23.6, "tenacity": 88.8, "speed": 118.9, "dodge": 44.8, "hit": 28.3, "vampire": 17.9}, {"name": "木怪", "hp": 24800.0, "atk": 2000.0, "crit": 23.6, "tenacity": 83.1, "speed": 118.9, "dodge": 40.1, "hit": 28.3, "vampire": 16.0}]}, {"id": "2010108", "coord": "8,2", "isBoss": false, "type": "通常", "xianLi": 20750000, "enemies": [{"name": "草の精霊", "hp": 71150.0, "atk": 6600.0, "crit": 20.3, "tenacity": 74.0, "speed": 116.3, "dodge": 32.5, "hit": 24.4, "vampire": 13.0}, {"name": "草の精霊", "hp": 71150.0, "atk": 6600.0, "crit": 20.3, "tenacity": 74.0, "speed": 116.3, "dodge": 32.5, "hit": 24.4, "vampire": 13.0}]}, {"id": "2010105", "coord": "8,3", "isBoss": false, "type": "通常", "xianLi": 35250000, "enemies": [{"name": "石の精霊", "hp": 25350.0, "atk": 2050.0, "crit": 24.1, "tenacity": 87.2, "speed": 119.3, "dodge": 43.5, "hit": 29.0, "vampire": 17.4}, {"name": "魔蠍", "hp": 94350.0, "atk": 12000.0, "crit": 24.1, "tenacity": 90.1, "speed": 119.3, "dodge": 45.9, "hit": 29.0, "vampire": 18.4}, {"name": "石の精霊", "hp": 25350.0, "atk": 2050.0, "crit": 24.1, "tenacity": 87.2, "speed": 119.3, "dodge": 43.5, "hit": 29.0, "vampire": 17.4}]}], "広寒天宮": [{"id": "2110201", "coord": "7,0", "isBoss": true, "type": "BOSS", "xianLi": 48400000, "enemies": [{"name": "玉兎の精霊", "hp": 119500.0, "atk": 20500.0, "crit": 26.3, "tenacity": 31.6, "speed": 177.1, "dodge": 52.7, "hit": 31.6, "vampire": 21.1}]}, {"id": "2110107", "coord": "1,1", "isBoss": false, "type": "通常", "xianLi": 26050000, "enemies": [{"name": "灯籠幽霊", "hp": 50250.0, "atk": 11000.0, "crit": 21.6, "tenacity": 26.0, "speed": 162.7, "dodge": 34.6, "hit": 26.0, "vampire": 13.8}, {"name": "灯籠幽霊", "hp": 50250.0, "atk": 11000.0, "crit": 21.6, "tenacity": 26.0, "speed": 162.7, "dodge": 34.6, "hit": 26.0, "vampire": 13.8}]}, {"id": "2110108", "coord": "2,1", "isBoss": false, "type": "通常", "xianLi": 28200000, "enemies": [{"name": "灯籠幽霊", "hp": 15200.0, "atk": 3000.0, "crit": 22.2, "tenacity": 26.6, "speed": 163.4, "dodge": 35.5, "hit": 26.6, "vampire": 14.2}, {"name": "魚の精霊", "hp": 71100.0, "atk": 14000.0, "crit": 22.2, "tenacity": 26.6, "speed": 165.2, "dodge": 37.7, "hit": 26.6, "vampire": 15.1}, {"name": "灯籠幽霊", "hp": 15200.0, "atk": 3000.0, "crit": 22.2, "tenacity": 26.6, "speed": 163.4, "dodge": 35.5, "hit": 26.6, "vampire": 14.2}]}, {"id": "2110104", "coord": "2,2", "isBoss": false, "type": "通常", "xianLi": 30450000, "enemies": [{"name": "魚の精霊", "hp": 34450.0, "atk": 7400.0, "crit": 22.8, "tenacity": 27.3, "speed": 166.0, "dodge": 38.7, "hit": 27.3, "vampire": 15.5}, {"name": "魚の精霊", "hp": 34450.0, "atk": 7400.0, "crit": 22.8, "tenacity": 27.3, "speed": 166.0, "dodge": 38.7, "hit": 27.3, "vampire": 15.5}, {"name": "魚の精霊", "hp": 34450.0, "atk": 7400.0, "crit": 22.8, "tenacity": 27.3, "speed": 166.0, "dodge": 38.7, "hit": 27.3, "vampire": 15.5}]}, {"id": "2110101", "coord": "3,3", "isBoss": false, "type": "通常", "xianLi": 24050000, "enemies": [{"name": "灯籠幽霊", "hp": 49950.0, "atk": 10500.0, "crit": 21.1, "tenacity": 25.3, "speed": 162.0, "dodge": 33.7, "hit": 25.3, "vampire": 13.5}, {"name": "灯籠幽霊", "hp": 49950.0, "atk": 10500.0, "crit": 21.1, "tenacity": 25.3, "speed": 162.0, "dodge": 33.7, "hit": 25.3, "vampire": 13.5}]}, {"id": "2110102", "coord": "4,3", "isBoss": false, "type": "通常", "xianLi": 32900000, "enemies": [{"name": "灯籠幽霊", "hp": 16000.0, "atk": 3150.0, "crit": 23.3, "tenacity": 28.0, "speed": 164.9, "dodge": 37.3, "hit": 28.0, "vampire": 14.9}, {"name": "丹青", "hp": 75800.0, "atk": 14500.0, "crit": 23.3, "tenacity": 28.0, "speed": 168.6, "dodge": 42.0, "hit": 28.0, "vampire": 16.8}, {"name": "灯籠幽霊", "hp": 16000.0, "atk": 3150.0, "crit": 23.3, "tenacity": 28.0, "speed": 164.9, "dodge": 37.3, "hit": 28.0, "vampire": 14.9}]}, {"id": "2110105", "coord": "5,2", "isBoss": false, "type": "通常", "xianLi": 35450000, "enemies": [{"name": "丹青", "hp": 56200.0, "atk": 12000.0, "crit": 23.9, "tenacity": 28.7, "speed": 169.4, "dodge": 43.0, "hit": 28.7, "vampire": 17.2}, {"name": "丹青", "hp": 56200.0, "atk": 12000.0, "crit": 23.9, "tenacity": 28.7, "speed": 169.4, "dodge": 43.0, "hit": 28.7, "vampire": 17.2}]}, {"id": "2110109", "coord": "6,1", "isBoss": false, "type": "通常", "xianLi": 41050000, "enemies": [{"name": "丹青", "hp": 17050.0, "atk": 3400.0, "crit": 25.0, "tenacity": 30.0, "speed": 171.0, "dodge": 45.0, "hit": 30.0, "vampire": 18.0}, {"name": "走無常", "hp": 81600.0, "atk": 15500.0, "crit": 25.0, "tenacity": 30.0, "speed": 173.0, "dodge": 47.5, "hit": 30.0, "vampire": 19.0}, {"name": "丹青", "hp": 17050.0, "atk": 3400.0, "crit": 25.0, "tenacity": 30.0, "speed": 171.0, "dodge": 45.0, "hit": 30.0, "vampire": 18.0}]}, {"id": "2110106", "coord": "7,2", "isBoss": false, "type": "通常", "xianLi": 38150000, "enemies": [{"name": "魚の精霊", "hp": 16800.0, "atk": 3300.0, "crit": 24.5, "tenacity": 29.4, "speed": 168.3, "dodge": 41.6, "hit": 29.4, "vampire": 16.6}, {"name": "走無常", "hp": 77950.0, "atk": 15500.0, "crit": 24.5, "tenacity": 29.4, "speed": 172.2, "dodge": 46.5, "hit": 29.4, "vampire": 18.6}, {"name": "魚の精霊", "hp": 16800.0, "atk": 3300.0, "crit": 24.5, "tenacity": 29.4, "speed": 168.3, "dodge": 41.6, "hit": 29.4, "vampire": 16.6}]}, {"id": "2110103", "coord": "7,3", "isBoss": false, "type": "通常", "xianLi": 24050000, "enemies": [{"name": "魚の精霊", "hp": 49950.0, "atk": 10500.0, "crit": 21.1, "tenacity": 25.3, "speed": 163.7, "dodge": 35.8, "hit": 25.3, "vampire": 14.3}, {"name": "魚の精霊", "hp": 49950.0, "atk": 10500.0, "crit": 21.1, "tenacity": 25.3, "speed": 163.7, "dodge": 35.8, "hit": 25.3, "vampire": 14.3}]}], "蓬莱仙島": [{"id": "2210201", "coord": "7,1", "isBoss": true, "type": "BOSS", "xianLi": 61500000, "enemies": [{"name": "拂子道士", "hp": 166000.0, "atk": 17500.0, "crit": 90.7, "tenacity": 66.9, "speed": 122.3, "dodge": 27.9, "hit": 66.9, "vampire": 0.0}]}, {"id": "2210108", "coord": "0,1", "isBoss": false, "type": "通常", "xianLi": 32750000, "enemies": [{"name": "道童", "hp": 67050.0, "atk": 9750.0, "crit": 71.6, "tenacity": 44.0, "speed": 118.3, "dodge": 22.9, "hit": 44.0, "vampire": 0.0}, {"name": "道童", "hp": 67050.0, "atk": 9750.0, "crit": 71.6, "tenacity": 44.0, "speed": 118.3, "dodge": 22.9, "hit": 44.0, "vampire": 0.0}]}, {"id": "2210104", "coord": "0,2", "isBoss": false, "type": "通常", "xianLi": 44800000, "enemies": [{"name": "酒童子", "hp": 49850.0, "atk": 16000.0, "crit": 80.5, "tenacity": 54.6, "speed": 120.2, "dodge": 25.3, "hit": 54.6, "vampire": 0.0}, {"name": "酒童子", "hp": 49850.0, "atk": 16000.0, "crit": 80.5, "tenacity": 54.6, "speed": 120.2, "dodge": 25.3, "hit": 54.6, "vampire": 0.0}]}, {"id": "2210109", "coord": "2,1", "isBoss": false, "type": "通常", "xianLi": 41500000, "enemies": [{"name": "道童", "hp": 21700.0, "atk": 2750.0, "crit": 74.5, "tenacity": 47.4, "speed": 119.7, "dodge": 24.7, "hit": 47.4, "vampire": 0.0}, {"name": "酒童子", "hp": 68400.0, "atk": 19000.0, "crit": 79.4, "tenacity": 53.3, "speed": 119.7, "dodge": 24.7, "hit": 53.3, "vampire": 0.0}, {"name": "道童", "hp": 21700.0, "atk": 2750.0, "crit": 74.5, "tenacity": 47.4, "speed": 119.7, "dodge": 24.7, "hit": 47.4, "vampire": 0.0}]}, {"id": "2210103", "coord": "2,3", "isBoss": false, "type": "通常", "xianLi": 38400000, "enemies": [{"name": "女幽霊", "hp": 47150.0, "atk": 6400.0, "crit": 76.0, "tenacity": 49.1, "speed": 119.3, "dodge": 24.1, "hit": 49.1, "vampire": 0.0}, {"name": "女幽霊", "hp": 47150.0, "atk": 6400.0, "crit": 76.0, "tenacity": 49.1, "speed": 119.3, "dodge": 24.1, "hit": 49.1, "vampire": 0.0}, {"name": "女幽霊", "hp": 47150.0, "atk": 6400.0, "crit": 76.0, "tenacity": 49.1, "speed": 119.3, "dodge": 24.1, "hit": 49.1, "vampire": 0.0}]}, {"id": "2210101", "coord": "4,4", "isBoss": false, "type": "通常", "xianLi": 30200000, "enemies": [{"name": "道童", "hp": 65300.0, "atk": 9500.0, "crit": 70.7, "tenacity": 42.8, "speed": 117.8, "dodge": 22.3, "hit": 42.8, "vampire": 0.0}, {"name": "道童", "hp": 65300.0, "atk": 9500.0, "crit": 70.7, "tenacity": 42.8, "speed": 117.8, "dodge": 22.3, "hit": 42.8, "vampire": 0.0}]}, {"id": "2210105", "coord": "5,2", "isBoss": false, "type": "通常", "xianLi": 48300000, "enemies": [{"name": "女幽霊", "hp": 23000.0, "atk": 2850.0, "crit": 79.0, "tenacity": 52.8, "speed": 120.7, "dodge": 25.9, "hit": 52.8, "vampire": 0.0}, {"name": "猫面婆", "hp": 136000.0, "atk": 10500.0, "crit": 84.2, "tenacity": 59.0, "speed": 120.7, "dodge": 25.9, "hit": 59.0, "vampire": 0.0}, {"name": "女幽霊", "hp": 23000.0, "atk": 2850.0, "crit": 79.0, "tenacity": 52.8, "speed": 120.7, "dodge": 25.9, "hit": 52.8, "vampire": 0.0}]}, {"id": "2210102", "coord": "5,4", "isBoss": false, "type": "通常", "xianLi": 44800000, "enemies": [{"name": "酒童子", "hp": 49850.0, "atk": 16000.0, "crit": 80.5, "tenacity": 54.6, "speed": 120.2, "dodge": 25.3, "hit": 54.6, "vampire": 0.0}, {"name": "酒童子", "hp": 49850.0, "atk": 16000.0, "crit": 80.5, "tenacity": 54.6, "speed": 120.2, "dodge": 25.3, "hit": 54.6, "vampire": 0.0}]}, {"id": "2210106", "coord": "6,2", "isBoss": false, "type": "通常", "xianLi": 52000000, "enemies": [{"name": "酒童子", "hp": 15600.0, "atk": 4400.0, "crit": 82.7, "tenacity": 57.2, "speed": 121.2, "dodge": 26.5, "hit": 57.2, "vampire": 0.0}, {"name": "猫面婆", "hp": 135500.0, "atk": 11000.0, "crit": 85.3, "tenacity": 60.4, "speed": 121.2, "dodge": 26.5, "hit": 60.4, "vampire": 0.0}, {"name": "酒童子", "hp": 15600.0, "atk": 4400.0, "crit": 82.7, "tenacity": 57.2, "speed": 121.2, "dodge": 26.5, "hit": 57.2, "vampire": 0.0}]}, {"id": "2210107", "coord": "8,2", "isBoss": false, "type": "通常", "xianLi": 30200000, "enemies": [{"name": "女幽霊", "hp": 65300.0, "atk": 9500.0, "crit": 72.9, "tenacity": 45.5, "speed": 117.8, "dodge": 22.3, "hit": 45.5, "vampire": 0.0}, {"name": "女幽霊", "hp": 65300.0, "atk": 9500.0, "crit": 72.9, "tenacity": 45.5, "speed": 117.8, "dodge": 22.3, "hit": 45.5, "vampire": 0.0}]}], "天姥山": [{"id": "2310201", "coord": "6,0", "isBoss": true, "type": "BOSS", "xianLi": 78950000, "enemies": [{"name": "狐妖", "hp": 119500.0, "atk": 29000.0, "crit": 58.8, "tenacity": 35.3, "speed": 147.0, "dodge": 64.4, "hit": 70.5, "vampire": 0.0}]}, {"id": "2310107", "coord": "1,1", "isBoss": false, "type": "通常", "xianLi": 41600000, "enemies": [{"name": "木怪", "hp": 91450.0, "atk": 8550.0, "crit": 24.1, "tenacity": 49.2, "speed": 119.3, "dodge": 76.0, "hit": 29.0, "vampire": 16.4}, {"name": "木怪", "hp": 91450.0, "atk": 8550.0, "crit": 24.1, "tenacity": 49.2, "speed": 119.3, "dodge": 76.0, "hit": 29.0, "vampire": 16.4}]}, {"id": "2310102", "coord": "1,3", "isBoss": false, "type": "通常", "xianLi": 38250000, "enemies": [{"name": "木怪", "hp": 89350.0, "atk": 8300.0, "crit": 23.5, "tenacity": 48.0, "speed": 118.8, "dodge": 75.0, "hit": 28.2, "vampire": 16.0}, {"name": "木怪", "hp": 89350.0, "atk": 8300.0, "crit": 23.5, "tenacity": 48.0, "speed": 118.8, "dodge": 75.0, "hit": 28.2, "vampire": 16.0}]}, {"id": "2310108", "coord": "2,1", "isBoss": false, "type": "通常", "xianLi": 45100000, "enemies": [{"name": "木怪", "hp": 28100.0, "atk": 2300.0, "crit": 24.8, "tenacity": 50.5, "speed": 119.8, "dodge": 77.1, "hit": 29.7, "vampire": 16.8}, {"name": "魔眼", "hp": 108000.0, "atk": 13000.0, "crit": 44.6, "tenacity": 29.7, "speed": 135.7, "dodge": 59.8, "hit": 53.5, "vampire": 0.0}, {"name": "木怪", "hp": 28100.0, "atk": 2300.0, "crit": 24.8, "tenacity": 50.5, "speed": 119.8, "dodge": 77.1, "hit": 29.7, "vampire": 16.8}]}, {"id": "2310105", "coord": "3,2", "isBoss": false, "type": "通常", "xianLi": 48900000, "enemies": [{"name": "魔眼", "hp": 51500.0, "atk": 7000.0, "crit": 45.7, "tenacity": 30.5, "speed": 136.6, "dodge": 60.4, "hit": 54.9, "vampire": 0.0}, {"name": "魔眼", "hp": 51500.0, "atk": 7000.0, "crit": 45.7, "tenacity": 30.5, "speed": 136.6, "dodge": 60.4, "hit": 54.9, "vampire": 0.0}, {"name": "魔眼", "hp": 51500.0, "atk": 7000.0, "crit": 45.7, "tenacity": 30.5, "speed": 136.6, "dodge": 60.4, "hit": 54.9, "vampire": 0.0}]}, {"id": "2310106", "coord": "4,2", "isBoss": false, "type": "通常", "xianLi": 52900000, "enemies": [{"name": "木怪", "hp": 29700.0, "atk": 2400.0, "crit": 26.0, "tenacity": 53.1, "speed": 120.8, "dodge": 79.2, "hit": 31.2, "vampire": 17.7}, {"name": "石の精霊", "hp": 141000.0, "atk": 11000.0, "crit": 26.0, "tenacity": 56.2, "speed": 120.8, "dodge": 81.9, "hit": 31.2, "vampire": 18.7}, {"name": "木怪", "hp": 29700.0, "atk": 2400.0, "crit": 26.0, "tenacity": 53.1, "speed": 120.8, "dodge": 79.2, "hit": 31.2, "vampire": 17.7}]}, {"id": "2310109", "coord": "5,1", "isBoss": false, "type": "通常", "xianLi": 66500000, "enemies": [{"name": "石の精霊", "hp": 32150.0, "atk": 2550.0, "crit": 27.9, "tenacity": 60.3, "speed": 122.3, "dodge": 85.3, "hit": 33.5, "vampire": 20.1}, {"name": "魔蠍", "hp": 119000.0, "atk": 15000.0, "crit": 27.9, "tenacity": 63.7, "speed": 122.3, "dodge": 88.0, "hit": 33.5, "vampire": 21.2}, {"name": "石の精霊", "hp": 32150.0, "atk": 2550.0, "crit": 27.9, "tenacity": 60.3, "speed": 122.3, "dodge": 85.3, "hit": 33.5, "vampire": 20.1}]}, {"id": "2310103", "coord": "6,3", "isBoss": false, "type": "通常", "xianLi": 57150000, "enemies": [{"name": "石の精霊", "hp": 100500.0, "atk": 9450.0, "crit": 26.7, "tenacity": 57.6, "speed": 121.3, "dodge": 83.0, "hit": 32.0, "vampire": 19.2}, {"name": "石の精霊", "hp": 100500.0, "atk": 9450.0, "crit": 26.7, "tenacity": 57.6, "speed": 121.3, "dodge": 83.0, "hit": 32.0, "vampire": 19.2}]}, {"id": "2310104", "coord": "7,3", "isBoss": false, "type": "通常", "xianLi": 61700000, "enemies": [{"name": "魔眼", "hp": 24850.0, "atk": 3150.0, "crit": 49.1, "tenacity": 32.7, "speed": 139.3, "dodge": 62.3, "hit": 58.9, "vampire": 0.0}, {"name": "魔蠍", "hp": 117500.0, "atk": 14500.0, "crit": 27.3, "tenacity": 62.2, "speed": 121.8, "dodge": 86.8, "hit": 32.7, "vampire": 20.7}, {"name": "魔眼", "hp": 24850.0, "atk": 3150.0, "crit": 49.1, "tenacity": 32.7, "speed": 139.3, "dodge": 62.3, "hit": 58.9, "vampire": 0.0}]}, {"id": "2310101", "coord": "7,4", "isBoss": false, "type": "通常", "xianLi": 38250000, "enemies": [{"name": "魔眼", "hp": 74150.0, "atk": 10000.0, "crit": 42.3, "tenacity": 28.2, "speed": 133.9, "dodge": 58.5, "hit": 50.8, "vampire": 0.0}, {"name": "魔眼", "hp": 74150.0, "atk": 10000.0, "crit": 42.3, "tenacity": 28.2, "speed": 133.9, "dodge": 58.5, "hit": 50.8, "vampire": 0.0}]}], "崑崙": [{"id": "2410201", "coord": "8,3", "isBoss": true, "type": "BOSS", "xianLi": 98800000, "enemies": [{"name": "蓮花仙", "hp": 195000.0, "atk": 21000.0, "crit": 61.4, "tenacity": 73.6, "speed": 124.5, "dodge": 30.7, "hit": 73.6, "vampire": 25.0}]}, {"id": "2410107", "coord": "0,1", "isBoss": false, "type": "通常", "xianLi": 51600000, "enemies": [{"name": "女幽霊", "hp": 80150.0, "atk": 11500.0, "crit": 42.8, "tenacity": 51.4, "speed": 120.2, "dodge": 25.2, "hit": 51.4, "vampire": 25.0}, {"name": "女幽霊", "hp": 80150.0, "atk": 11500.0, "crit": 42.8, "tenacity": 51.4, "speed": 120.2, "dodge": 25.2, "hit": 51.4, "vampire": 25.0}]}, {"id": "2410104", "coord": "1,2", "isBoss": false, "type": "通常", "xianLi": 56050000, "enemies": [{"name": "女幽霊", "hp": 24550.0, "atk": 3100.0, "crit": 44.0, "tenacity": 52.7, "speed": 120.7, "dodge": 25.9, "hit": 52.7, "vampire": 25.0}, {"name": "丹青", "hp": 92200.0, "atk": 18000.0, "crit": 25.9, "tenacity": 31.0, "speed": 137.2, "dodge": 46.5, "hit": 31.0, "vampire": 43.6}, {"name": "女幽霊", "hp": 24550.0, "atk": 3100.0, "crit": 44.0, "tenacity": 52.7, "speed": 120.7, "dodge": 25.9, "hit": 52.7, "vampire": 25.0}]}, {"id": "2410103", "coord": "1,3", "isBoss": false, "type": "通常", "xianLi": 47400000, "enemies": [{"name": "女幽霊", "hp": 79500.0, "atk": 11000.0, "crit": 41.7, "tenacity": 50.1, "speed": 119.6, "dodge": 24.5, "hit": 50.1, "vampire": 25.0}, {"name": "女幽霊", "hp": 79500.0, "atk": 11000.0, "crit": 41.7, "tenacity": 50.1, "speed": 119.6, "dodge": 24.5, "hit": 50.1, "vampire": 25.0}]}, {"id": "2410101", "coord": "1,4", "isBoss": false, "type": "通常", "xianLi": 60800000, "enemies": [{"name": "丹青", "hp": 44500.0, "atk": 9550.0, "crit": 26.5, "tenacity": 31.8, "speed": 138.2, "dodge": 47.7, "hit": 31.8, "vampire": 44.1}, {"name": "丹青", "hp": 44500.0, "atk": 9550.0, "crit": 26.5, "tenacity": 31.8, "speed": 138.2, "dodge": 47.7, "hit": 31.8, "vampire": 44.1}, {"name": "丹青", "hp": 44500.0, "atk": 9550.0, "crit": 26.5, "tenacity": 31.8, "speed": 138.2, "dodge": 47.7, "hit": 31.8, "vampire": 44.1}]}, {"id": "2410105", "coord": "3,2", "isBoss": false, "type": "通常", "xianLi": 47400000, "enemies": [{"name": "丹青", "hp": 62450.0, "atk": 14000.0, "crit": 24.5, "tenacity": 29.4, "speed": 135.3, "dodge": 44.2, "hit": 29.4, "vampire": 42.7}, {"name": "丹青", "hp": 62450.0, "atk": 14000.0, "crit": 24.5, "tenacity": 29.4, "speed": 135.3, "dodge": 44.2, "hit": 29.4, "vampire": 42.7}]}, {"id": "2410102", "coord": "3,4", "isBoss": false, "type": "通常", "xianLi": 65850000, "enemies": [{"name": "女幽霊", "hp": 25850.0, "atk": 3250.0, "crit": 46.2, "tenacity": 55.4, "speed": 121.7, "dodge": 27.2, "hit": 55.4, "vampire": 25.0}, {"name": "酒童子", "hp": 81450.0, "atk": 22500.0, "crit": 48.9, "tenacity": 58.7, "speed": 121.7, "dodge": 27.2, "hit": 58.7, "vampire": 25.0}, {"name": "女幽霊", "hp": 25850.0, "atk": 3250.0, "crit": 46.2, "tenacity": 55.4, "speed": 121.7, "dodge": 27.2, "hit": 55.4, "vampire": 25.0}]}, {"id": "2410106", "coord": "4,2", "isBoss": false, "type": "通常", "xianLi": 71200000, "enemies": [{"name": "酒童子", "hp": 59200.0, "atk": 19000.0, "crit": 50.1, "tenacity": 60.1, "speed": 122.3, "dodge": 27.8, "hit": 60.1, "vampire": 25.0}, {"name": "酒童子", "hp": 59200.0, "atk": 19000.0, "crit": 50.1, "tenacity": 60.1, "speed": 122.3, "dodge": 27.8, "hit": 60.1, "vampire": 25.0}]}, {"id": "2410108", "coord": "6,1", "isBoss": false, "type": "通常", "xianLi": 76950000, "enemies": [{"name": "丹青", "hp": 21750.0, "atk": 4250.0, "crit": 28.5, "tenacity": 34.2, "speed": 141.0, "dodge": 51.3, "hit": 34.2, "vampire": 45.5}, {"name": "猫面婆", "hp": 161000.0, "atk": 12500.0, "crit": 54.1, "tenacity": 64.9, "speed": 122.8, "dodge": 28.5, "hit": 64.9, "vampire": 25.0}, {"name": "丹青", "hp": 21750.0, "atk": 4250.0, "crit": 28.5, "tenacity": 34.2, "speed": 141.0, "dodge": 51.3, "hit": 34.2, "vampire": 45.5}]}, {"id": "2410109", "coord": "7,1", "isBoss": false, "type": "通常", "xianLi": 83050000, "enemies": [{"name": "酒童子", "hp": 18400.0, "atk": 5250.0, "crit": 52.5, "tenacity": 62.9, "speed": 123.3, "dodge": 29.1, "hit": 62.9, "vampire": 25.0}, {"name": "猫面婆", "hp": 162000.0, "atk": 13000.0, "crit": 55.4, "tenacity": 66.4, "speed": 123.3, "dodge": 29.1, "hit": 66.4, "vampire": 25.0}, {"name": "酒童子", "hp": 18400.0, "atk": 5250.0, "crit": 52.5, "tenacity": 62.9, "speed": 123.3, "dodge": 29.1, "hit": 62.9, "vampire": 25.0}]}]}, "5": {"廬山の滝": [{"id": "2510201", "coord": "7,3", "isBoss": true, "type": "BOSS", "xianLi": 122000000, "enemies": [{"name": "画皮", "hp": 212000.0, "atk": 22500.0, "crit": 63.9, "tenacity": 38.4, "speed": 151.1, "dodge": 32.0, "hit": 116.7, "vampire": 0.0}]}, {"id": "2510108", "coord": "1,0", "isBoss": false, "type": "通常", "xianLi": 63150000, "enemies": [{"name": "箒妖怪", "hp": 58050.0, "atk": 18500.0, "crit": 42.0, "tenacity": 31.5, "speed": 133.6, "dodge": 26.3, "hit": 90.4, "vampire": 0.0}, {"name": "箒妖怪", "hp": 58050.0, "atk": 18500.0, "crit": 42.0, "tenacity": 31.5, "speed": 133.6, "dodge": 26.3, "hit": 90.4, "vampire": 0.0}]}, {"id": "2510109", "coord": "2,0", "isBoss": false, "type": "通常", "xianLi": 68700000, "enemies": [{"name": "箒妖怪", "hp": 17550.0, "atk": 5050.0, "crit": 43.1, "tenacity": 32.3, "speed": 134.5, "dodge": 26.9, "hit": 91.7, "vampire": 0.0}, {"name": "桃霊", "hp": 82200.0, "atk": 23500.0, "crit": 45.8, "tenacity": 32.3, "speed": 136.6, "dodge": 26.9, "hit": 95.0, "vampire": 0.0}, {"name": "箒妖怪", "hp": 17550.0, "atk": 5050.0, "crit": 43.1, "tenacity": 32.3, "speed": 134.5, "dodge": 26.9, "hit": 91.7, "vampire": 0.0}]}, {"id": "2510104", "coord": "2,2", "isBoss": false, "type": "通常", "xianLi": 58000000, "enemies": [{"name": "箒妖怪", "hp": 56550.0, "atk": 18000.0, "crit": 40.9, "tenacity": 30.7, "speed": 132.7, "dodge": 25.6, "hit": 89.1, "vampire": 0.0}, {"name": "箒妖怪", "hp": 56550.0, "atk": 18000.0, "crit": 40.9, "tenacity": 30.7, "speed": 132.7, "dodge": 25.6, "hit": 89.1, "vampire": 0.0}]}, {"id": "2510105", "coord": "4,2", "isBoss": false, "type": "通常", "xianLi": 74600000, "enemies": [{"name": "桃霊", "hp": 41250.0, "atk": 12000.0, "crit": 47.0, "tenacity": 33.2, "speed": 137.6, "dodge": 27.6, "hit": 96.4, "vampire": 0.0}, {"name": "桃霊", "hp": 41250.0, "atk": 12000.0, "crit": 47.0, "tenacity": 33.2, "speed": 137.6, "dodge": 27.6, "hit": 96.4, "vampire": 0.0}, {"name": "桃霊", "hp": 41250.0, "atk": 12000.0, "crit": 47.0, "tenacity": 33.2, "speed": 137.6, "dodge": 27.6, "hit": 96.4, "vampire": 0.0}]}, {"id": "2510103", "coord": "4,3", "isBoss": false, "type": "通常", "xianLi": 87600000, "enemies": [{"name": "魔眼", "hp": 97000.0, "atk": 13500.0, "crit": 52.2, "tenacity": 34.8, "speed": 141.8, "dodge": 29.0, "hit": 102.6, "vampire": 0.0}, {"name": "魔眼", "hp": 97000.0, "atk": 13500.0, "crit": 52.2, "tenacity": 34.8, "speed": 141.8, "dodge": 29.0, "hit": 102.6, "vampire": 0.0}]}, {"id": "2510101", "coord": "4,4", "isBoss": false, "type": "通常", "xianLi": 94750000, "enemies": [{"name": "桃霊", "hp": 19400.0, "atk": 5550.0, "crit": 50.5, "tenacity": 35.6, "speed": 140.4, "dodge": 29.7, "hit": 100.6, "vampire": 0.0}, {"name": "息亀", "hp": 91950.0, "atk": 25500.0, "crit": 56.4, "tenacity": 35.6, "speed": 145.1, "dodge": 29.7, "hit": 107.7, "vampire": 0.0}, {"name": "桃霊", "hp": 19400.0, "atk": 5550.0, "crit": 50.5, "tenacity": 35.6, "speed": 140.4, "dodge": 29.7, "hit": 100.6, "vampire": 0.0}]}, {"id": "2510106", "coord": "5,1", "isBoss": false, "type": "通常", "xianLi": 80900000, "enemies": [{"name": "箒妖怪", "hp": 18450.0, "atk": 5300.0, "crit": 45.3, "tenacity": 34.0, "speed": 136.2, "dodge": 28.3, "hit": 94.4, "vampire": 0.0}, {"name": "魔眼", "hp": 129000.0, "atk": 16500.0, "crit": 51.0, "tenacity": 34.0, "speed": 140.8, "dodge": 28.3, "hit": 101.2, "vampire": 0.0}, {"name": "箒妖怪", "hp": 18450.0, "atk": 5300.0, "crit": 45.3, "tenacity": 34.0, "speed": 136.2, "dodge": 28.3, "hit": 94.4, "vampire": 0.0}]}, {"id": "2510107", "coord": "6,1", "isBoss": false, "type": "通常", "xianLi": 58000000, "enemies": [{"name": "桃霊", "hp": 56550.0, "atk": 18000.0, "crit": 43.5, "tenacity": 30.7, "speed": 134.8, "dodge": 25.6, "hit": 92.2, "vampire": 0.0}, {"name": "桃霊", "hp": 56550.0, "atk": 18000.0, "crit": 43.5, "tenacity": 30.7, "speed": 134.8, "dodge": 25.6, "hit": 92.2, "vampire": 0.0}]}, {"id": "2510102", "coord": "6,4", "isBoss": false, "type": "通常", "xianLi": 102000000, "enemies": [{"name": "魔眼", "hp": 30050.0, "atk": 3750.0, "crit": 54.7, "tenacity": 36.4, "speed": 143.7, "dodge": 30.4, "hit": 105.6, "vampire": 0.0}, {"name": "息亀", "hp": 92650.0, "atk": 26500.0, "crit": 57.7, "tenacity": 36.4, "speed": 146.2, "dodge": 30.4, "hit": 109.2, "vampire": 0.0}, {"name": "魔眼", "hp": 30050.0, "atk": 3750.0, "crit": 54.7, "tenacity": 36.4, "speed": 143.7, "dodge": 30.4, "hit": 105.6, "vampire": 0.0}]}], "蜀の道": [{"id": "2610201", "coord": "8,3", "isBoss": true, "type": "BOSS", "xianLi": 149000000, "enemies": [{"name": "夜叉", "hp": 282000.0, "atk": 19500.0, "crit": 33.3, "tenacity": 119.8, "speed": 126.6, "dodge": 66.5, "hit": 39.9, "vampire": 26.6}]}, {"id": "2610103", "coord": "0,3", "isBoss": false, "type": "通常", "xianLi": 70200000, "enemies": [{"name": "草の精霊", "hp": 117000.0, "atk": 10000.0, "crit": 26.6, "tenacity": 91.1, "speed": 121.3, "dodge": 42.6, "hit": 31.9, "vampire": 17.0}, {"name": "草の精霊", "hp": 117000.0, "atk": 10000.0, "crit": 26.6, "tenacity": 91.1, "speed": 121.3, "dodge": 42.6, "hit": 31.9, "vampire": 17.0}]}, {"id": "2610109", "coord": "2,0", "isBoss": false, "type": "通常", "xianLi": 76550000, "enemies": [{"name": "草の精霊", "hp": 117500.0, "atk": 10500.0, "crit": 27.3, "tenacity": 92.5, "speed": 121.9, "dodge": 43.7, "hit": 32.8, "vampire": 17.5}, {"name": "草の精霊", "hp": 117500.0, "atk": 10500.0, "crit": 27.3, "tenacity": 92.5, "speed": 121.9, "dodge": 43.7, "hit": 32.8, "vampire": 17.5}]}, {"id": "2610107", "coord": "2,1", "isBoss": false, "type": "通常", "xianLi": 83300000, "enemies": [{"name": "草の精霊", "hp": 35850.0, "atk": 2850.0, "crit": 28.0, "tenacity": 93.8, "speed": 122.4, "dodge": 44.8, "hit": 33.6, "vampire": 17.9}, {"name": "木怪", "hp": 164500.0, "atk": 13500.0, "crit": 28.0, "tenacity": 97.2, "speed": 122.4, "dodge": 47.7, "hit": 33.6, "vampire": 19.1}, {"name": "草の精霊", "hp": 35850.0, "atk": 2850.0, "crit": 28.0, "tenacity": 93.8, "speed": 122.4, "dodge": 44.8, "hit": 33.6, "vampire": 17.9}]}, {"id": "2610104", "coord": "2,3", "isBoss": false, "type": "通常", "xianLi": 90550000, "enemies": [{"name": "木怪", "hp": 80950.0, "atk": 7050.0, "crit": 28.7, "tenacity": 98.6, "speed": 123.0, "dodge": 48.9, "hit": 34.5, "vampire": 19.5}, {"name": "木怪", "hp": 80950.0, "atk": 7050.0, "crit": 28.7, "tenacity": 98.6, "speed": 123.0, "dodge": 48.9, "hit": 34.5, "vampire": 19.5}, {"name": "木怪", "hp": 80950.0, "atk": 7050.0, "crit": 28.7, "tenacity": 98.6, "speed": 123.0, "dodge": 48.9, "hit": 34.5, "vampire": 19.5}]}, {"id": "2610101", "coord": "4,4", "isBoss": false, "type": "通常", "xianLi": 98300000, "enemies": [{"name": "草の精霊", "hp": 37600.0, "atk": 3000.0, "crit": 29.5, "tenacity": 96.6, "speed": 123.6, "dodge": 47.1, "hit": 35.3, "vampire": 18.9}, {"name": "石の精霊", "hp": 175500.0, "atk": 14000.0, "crit": 29.5, "tenacity": 103.6, "speed": 123.6, "dodge": 53.0, "hit": 35.3, "vampire": 21.2}, {"name": "草の精霊", "hp": 37600.0, "atk": 3000.0, "crit": 29.5, "tenacity": 96.6, "speed": 123.6, "dodge": 47.1, "hit": 35.3, "vampire": 18.9}]}, {"id": "2610105", "coord": "5,2", "isBoss": false, "type": "通常", "xianLi": 106500000, "enemies": [{"name": "石の精霊", "hp": 131000.0, "atk": 11500.0, "crit": 30.2, "tenacity": 105.2, "speed": 124.1, "dodge": 54.3, "hit": 36.2, "vampire": 21.7}, {"name": "石の精霊", "hp": 131000.0, "atk": 11500.0, "crit": 30.2, "tenacity": 105.2, "speed": 124.1, "dodge": 54.3, "hit": 36.2, "vampire": 21.7}]}, {"id": "2610102", "coord": "5,4", "isBoss": false, "type": "通常", "xianLi": 70200000, "enemies": [{"name": "木怪", "hp": 117000.0, "atk": 10000.0, "crit": 26.6, "tenacity": 94.3, "speed": 121.3, "dodge": 45.2, "hit": 31.9, "vampire": 18.1}, {"name": "木怪", "hp": 117000.0, "atk": 10000.0, "crit": 26.6, "tenacity": 94.3, "speed": 121.3, "dodge": 45.2, "hit": 31.9, "vampire": 18.1}]}, {"id": "2610108", "coord": "7,1", "isBoss": false, "type": "通常", "xianLi": 115000000, "enemies": [{"name": "木怪", "hp": 39400.0, "atk": 3150.0, "crit": 30.9, "tenacity": 103.0, "speed": 124.7, "dodge": 52.5, "hit": 37.1, "vampire": 21.0}, {"name": "魔蠍", "hp": 146000.0, "atk": 18500.0, "crit": 30.9, "tenacity": 110.4, "speed": 124.7, "dodge": 58.7, "hit": 37.1, "vampire": 23.5}, {"name": "木怪", "hp": 39400.0, "atk": 3150.0, "crit": 30.9, "tenacity": 103.0, "speed": 124.7, "dodge": 52.5, "hit": 37.1, "vampire": 21.0}]}, {"id": "2610106", "coord": "7,2", "isBoss": false, "type": "通常", "xianLi": 124500000, "enemies": [{"name": "石の精霊", "hp": 39950.0, "atk": 3250.0, "crit": 31.6, "tenacity": 108.2, "speed": 125.3, "dodge": 56.9, "hit": 37.9, "vampire": 22.7}, {"name": "魔蠍", "hp": 148500.0, "atk": 19000.0, "crit": 31.6, "tenacity": 112.0, "speed": 125.3, "dodge": 60.0, "hit": 37.9, "vampire": 24.0}, {"name": "石の精霊", "hp": 39950.0, "atk": 3250.0, "crit": 31.6, "tenacity": 108.2, "speed": 125.3, "dodge": 56.9, "hit": 37.9, "vampire": 22.7}]}], "広寒天宮": [{"id": "2710201", "coord": "8,0", "isBoss": true, "type": "BOSS", "xianLi": 180500000, "enemies": [{"name": "玉兎の精霊", "hp": 193000.0, "atk": 32500.0, "crit": 34.5, "tenacity": 41.5, "speed": 195.3, "dodge": 69.1, "hit": 41.5, "vampire": 27.6}]}, {"id": "2710109", "coord": "1,0", "isBoss": false, "type": "通常", "xianLi": 91800000, "enemies": [{"name": "灯籠幽霊", "hp": 80750.0, "atk": 17500.0, "crit": 28.4, "tenacity": 34.1, "speed": 176.3, "dodge": 45.4, "hit": 34.1, "vampire": 18.2}, {"name": "灯籠幽霊", "hp": 80750.0, "atk": 17500.0, "crit": 28.4, "tenacity": 34.1, "speed": 176.3, "dodge": 45.4, "hit": 34.1, "vampire": 18.2}]}, {"id": "2710108", "coord": "2,1", "isBoss": false, "type": "通常", "xianLi": 84150000, "enemies": [{"name": "灯籠幽霊", "hp": 76550.0, "atk": 17500.0, "crit": 27.6, "tenacity": 33.2, "speed": 175.4, "dodge": 44.2, "hit": 33.2, "vampire": 17.7}, {"name": "灯籠幽霊", "hp": 76550.0, "atk": 17500.0, "crit": 27.6, "tenacity": 33.2, "speed": 175.4, "dodge": 44.2, "hit": 33.2, "vampire": 17.7}]}, {"id": "2710101", "coord": "2,4", "isBoss": false, "type": "通常", "xianLi": 118000000, "enemies": [{"name": "灯籠幽霊", "hp": 25500.0, "atk": 5050.0, "crit": 30.6, "tenacity": 36.7, "speed": 179.2, "dodge": 49.0, "hit": 36.7, "vampire": 19.6}, {"name": "丹青", "hp": 119500.0, "atk": 23500.0, "crit": 30.6, "tenacity": 36.7, "speed": 184.1, "dodge": 55.1, "hit": 36.7, "vampire": 22.0}, {"name": "灯籠幽霊", "hp": 25500.0, "atk": 5050.0, "crit": 30.6, "tenacity": 36.7, "speed": 179.2, "dodge": 49.0, "hit": 36.7, "vampire": 19.6}]}, {"id": "2710105", "coord": "3,2", "isBoss": false, "type": "通常", "xianLi": 100000000, "enemies": [{"name": "灯籠幽霊", "hp": 24300.0, "atk": 4800.0, "crit": 29.1, "tenacity": 34.9, "speed": 177.3, "dodge": 46.6, "hit": 34.9, "vampire": 18.6}, {"name": "魚の精霊", "hp": 113000.0, "atk": 22500.0, "crit": 29.1, "tenacity": 34.9, "speed": 179.6, "dodge": 49.5, "hit": 34.9, "vampire": 19.8}, {"name": "灯籠幽霊", "hp": 24300.0, "atk": 4800.0, "crit": 29.1, "tenacity": 34.9, "speed": 177.3, "dodge": 46.6, "hit": 34.9, "vampire": 18.6}]}, {"id": "2710103", "coord": "3,3", "isBoss": false, "type": "通常", "xianLi": 108500000, "enemies": [{"name": "魚の精霊", "hp": 56650.0, "atk": 11500.0, "crit": 29.9, "tenacity": 35.8, "speed": 180.6, "dodge": 50.8, "hit": 35.8, "vampire": 20.3}, {"name": "魚の精霊", "hp": 56650.0, "atk": 11500.0, "crit": 29.9, "tenacity": 35.8, "speed": 180.6, "dodge": 50.8, "hit": 35.8, "vampire": 20.3}, {"name": "魚の精霊", "hp": 56650.0, "atk": 11500.0, "crit": 29.9, "tenacity": 35.8, "speed": 180.6, "dodge": 50.8, "hit": 35.8, "vampire": 20.3}]}, {"id": "2710102", "coord": "5,4", "isBoss": false, "type": "通常", "xianLi": 84150000, "enemies": [{"name": "魚の精霊", "hp": 76550.0, "atk": 17500.0, "crit": 27.6, "tenacity": 33.2, "speed": 177.6, "dodge": 47.0, "hit": 33.2, "vampire": 18.8}, {"name": "魚の精霊", "hp": 76550.0, "atk": 17500.0, "crit": 27.6, "tenacity": 33.2, "speed": 177.6, "dodge": 47.0, "hit": 33.2, "vampire": 18.8}]}, {"id": "2710104", "coord": "6,3", "isBoss": false, "type": "通常", "xianLi": 128000000, "enemies": [{"name": "丹青", "hp": 88350.0, "atk": 19500.0, "crit": 31.3, "tenacity": 37.6, "speed": 185.1, "dodge": 56.4, "hit": 37.6, "vampire": 22.6}, {"name": "丹青", "hp": 88350.0, "atk": 19500.0, "crit": 31.3, "tenacity": 37.6, "speed": 185.1, "dodge": 56.4, "hit": 37.6, "vampire": 22.6}]}, {"id": "2710106", "coord": "7,2", "isBoss": false, "type": "通常", "xianLi": 139000000, "enemies": [{"name": "魚の精霊", "hp": 26700.0, "atk": 5300.0, "crit": 32.1, "tenacity": 38.5, "speed": 183.6, "dodge": 54.5, "hit": 38.5, "vampire": 21.8}, {"name": "走無常", "hp": 125500.0, "atk": 24500.0, "crit": 32.1, "tenacity": 38.5, "speed": 188.8, "dodge": 61.0, "hit": 38.5, "vampire": 24.4}, {"name": "魚の精霊", "hp": 26700.0, "atk": 5300.0, "crit": 32.1, "tenacity": 38.5, "speed": 183.6, "dodge": 54.5, "hit": 38.5, "vampire": 21.8}]}, {"id": "2710107", "coord": "8,2", "isBoss": false, "type": "通常", "xianLi": 150500000, "enemies": [{"name": "丹青", "hp": 27450.0, "atk": 5400.0, "crit": 32.8, "tenacity": 39.4, "speed": 187.3, "dodge": 59.1, "hit": 39.4, "vampire": 23.6}, {"name": "走無常", "hp": 129000.0, "atk": 25000.0, "crit": 32.8, "tenacity": 39.4, "speed": 189.9, "dodge": 62.4, "hit": 39.4, "vampire": 24.9}, {"name": "丹青", "hp": 27450.0, "atk": 5400.0, "crit": 32.8, "tenacity": 39.4, "speed": 187.3, "dodge": 59.1, "hit": 39.4, "vampire": 23.6}]}], "蓬莱仙島": [{"id": "2810201", "coord": "7,1", "isBoss": true, "type": "BOSS", "xianLi": 217000000, "enemies": [{"name": "拂子道士", "hp": 258500.0, "atk": 27500.0, "crit": 111.7, "tenacity": 86.0, "speed": 128.7, "dodge": 35.8, "hit": 86.0, "vampire": 0.0}]}, {"id": "2810106", "coord": "0,2", "isBoss": false, "type": "通常", "xianLi": 109000000, "enemies": [{"name": "道童", "hp": 106500.0, "atk": 15000.0, "crit": 87.1, "tenacity": 56.5, "speed": 123.6, "dodge": 29.4, "hit": 56.5, "vampire": 0.0}, {"name": "道童", "hp": 106500.0, "atk": 15000.0, "crit": 87.1, "tenacity": 56.5, "speed": 123.6, "dodge": 29.4, "hit": 56.5, "vampire": 0.0}]}, {"id": "2810107", "coord": "1,2", "isBoss": false, "type": "通常", "xianLi": 119000000, "enemies": [{"name": "道童", "hp": 32250.0, "atk": 4100.0, "crit": 88.3, "tenacity": 58.0, "speed": 124.2, "dodge": 30.2, "hit": 58.0, "vampire": 0.0}, {"name": "女幽霊", "hp": 151500.0, "atk": 19000.0, "crit": 91.3, "tenacity": 61.6, "speed": 124.2, "dodge": 30.2, "hit": 61.6, "vampire": 0.0}, {"name": "道童", "hp": 32250.0, "atk": 4100.0, "crit": 88.3, "tenacity": 58.0, "speed": 124.2, "dodge": 30.2, "hit": 58.0, "vampire": 0.0}]}, {"id": "2810108", "coord": "2,2", "isBoss": false, "type": "通常", "xianLi": 100000000, "enemies": [{"name": "道童", "hp": 104500.0, "atk": 14500.0, "crit": 85.9, "tenacity": 55.0, "speed": 122.9, "dodge": 28.7, "hit": 55.0, "vampire": 0.0}, {"name": "道童", "hp": 104500.0, "atk": 14500.0, "crit": 85.9, "tenacity": 55.0, "speed": 122.9, "dodge": 28.7, "hit": 55.0, "vampire": 0.0}]}, {"id": "2810101", "coord": "2,4", "isBoss": false, "type": "通常", "xianLi": 129500000, "enemies": [{"name": "女幽霊", "hp": 73850.0, "atk": 10000.0, "crit": 92.7, "tenacity": 63.2, "speed": 124.8, "dodge": 31.0, "hit": 63.2, "vampire": 0.0}, {"name": "女幽霊", "hp": 73850.0, "atk": 10000.0, "crit": 92.7, "tenacity": 63.2, "speed": 124.8, "dodge": 31.0, "hit": 63.2, "vampire": 0.0}, {"name": "女幽霊", "hp": 73850.0, "atk": 10000.0, "crit": 92.7, "tenacity": 63.2, "speed": 124.8, "dodge": 31.0, "hit": 63.2, "vampire": 0.0}]}, {"id": "2810102", "coord": "3,4", "isBoss": false, "type": "通常", "xianLi": 141000000, "enemies": [{"name": "道童", "hp": 33950.0, "atk": 4300.0, "crit": 90.8, "tenacity": 60.9, "speed": 125.4, "dodge": 31.7, "hit": 60.9, "vampire": 0.0}, {"name": "酒童子", "hp": 106000.0, "atk": 30000.0, "crit": 97.1, "tenacity": 68.6, "speed": 125.4, "dodge": 31.7, "hit": 68.6, "vampire": 0.0}, {"name": "道童", "hp": 33950.0, "atk": 4300.0, "crit": 90.8, "tenacity": 60.9, "speed": 125.4, "dodge": 31.7, "hit": 60.9, "vampire": 0.0}]}, {"id": "2810103", "coord": "5,3", "isBoss": false, "type": "通常", "xianLi": 153500000, "enemies": [{"name": "酒童子", "hp": 78100.0, "atk": 25000.0, "crit": 98.5, "tenacity": 70.2, "speed": 126.0, "dodge": 32.5, "hit": 70.2, "vampire": 0.0}, {"name": "酒童子", "hp": 78100.0, "atk": 25000.0, "crit": 98.5, "tenacity": 70.2, "speed": 126.0, "dodge": 32.5, "hit": 70.2, "vampire": 0.0}]}, {"id": "2810104", "coord": "6,3", "isBoss": false, "type": "通常", "xianLi": 100000000, "enemies": [{"name": "女幽霊", "hp": 104500.0, "atk": 14500.0, "crit": 88.7, "tenacity": 58.5, "speed": 122.9, "dodge": 28.7, "hit": 58.5, "vampire": 0.0}, {"name": "女幽霊", "hp": 104500.0, "atk": 14500.0, "crit": 88.7, "tenacity": 58.5, "speed": 122.9, "dodge": 28.7, "hit": 58.5, "vampire": 0.0}]}, {"id": "2810109", "coord": "8,2", "isBoss": false, "type": "通常", "xianLi": 180500000, "enemies": [{"name": "酒童子", "hp": 24150.0, "atk": 6950.0, "crit": 101.3, "tenacity": 73.5, "speed": 127.2, "dodge": 34.0, "hit": 73.5, "vampire": 0.0}, {"name": "猫面婆", "hp": 215000.0, "atk": 17000.0, "crit": 104.7, "tenacity": 77.6, "speed": 127.2, "dodge": 34.0, "hit": 77.6, "vampire": 0.0}, {"name": "酒童子", "hp": 24150.0, "atk": 6950.0, "crit": 101.3, "tenacity": 73.5, "speed": 127.2, "dodge": 34.0, "hit": 73.5, "vampire": 0.0}]}, {"id": "2810105", "coord": "8,3", "isBoss": false, "type": "通常", "xianLi": 166500000, "enemies": [{"name": "女幽霊", "hp": 35650.0, "atk": 4500.0, "crit": 96.6, "tenacity": 67.9, "speed": 126.6, "dodge": 33.3, "hit": 67.9, "vampire": 0.0}, {"name": "猫面婆", "hp": 211500.0, "atk": 16500.0, "crit": 103.2, "tenacity": 75.9, "speed": 126.6, "dodge": 33.3, "hit": 75.9, "vampire": 0.0}, {"name": "女幽霊", "hp": 35650.0, "atk": 4500.0, "crit": 96.6, "tenacity": 67.9, "speed": 126.6, "dodge": 33.3, "hit": 67.9, "vampire": 0.0}]}], "天姥山": [{"id": "2910201", "coord": "8,2", "isBoss": true, "type": "BOSS", "xianLi": 244000000, "enemies": [{"name": "狐妖", "hp": 126500.0, "atk": 31000.0, "crit": 50.2, "tenacity": 30.1, "speed": 140.1, "dodge": 65.1, "hit": 60.2, "vampire": 0.0}]}, {"id": "2910106", "coord": "1,2", "isBoss": false, "type": "通常", "xianLi": 123000000, "enemies": [{"name": "木怪", "hp": 97000.0, "atk": 9100.0, "crit": 20.6, "tenacity": 42.0, "speed": 116.5, "dodge": 75.0, "hit": 24.7, "vampire": 14.0}, {"name": "木怪", "hp": 97000.0, "atk": 9100.0, "crit": 20.6, "tenacity": 42.0, "speed": 116.5, "dodge": 75.0, "hit": 24.7, "vampire": 14.0}]}, {"id": "2910101", "coord": "2,4", "isBoss": false, "type": "通常", "xianLi": 134000000, "enemies": [{"name": "木怪", "hp": 30350.0, "atk": 2400.0, "crit": 21.1, "tenacity": 43.1, "speed": 116.9, "dodge": 75.9, "hit": 25.4, "vampire": 14.4}, {"name": "魔眼", "hp": 113000.0, "atk": 14000.0, "crit": 38.1, "tenacity": 25.4, "speed": 130.4, "dodge": 61.1, "hit": 45.7, "vampire": 0.0}, {"name": "木怪", "hp": 30350.0, "atk": 2400.0, "crit": 21.1, "tenacity": 43.1, "speed": 116.9, "dodge": 75.9, "hit": 25.4, "vampire": 14.4}]}, {"id": "2910102", "coord": "3,4", "isBoss": false, "type": "通常", "xianLi": 112500000, "enemies": [{"name": "木怪", "hp": 94600.0, "atk": 8850.0, "crit": 20.1, "tenacity": 40.9, "speed": 116.1, "dodge": 74.1, "hit": 24.1, "vampire": 13.6}, {"name": "木怪", "hp": 94600.0, "atk": 8850.0, "crit": 20.1, "tenacity": 40.9, "speed": 116.1, "dodge": 74.1, "hit": 24.1, "vampire": 13.6}]}, {"id": "2910107", "coord": "4,2", "isBoss": false, "type": "通常", "xianLi": 159000000, "enemies": [{"name": "木怪", "hp": 31550.0, "atk": 2550.0, "crit": 22.2, "tenacity": 45.3, "speed": 117.8, "dodge": 77.8, "hit": 26.7, "vampire": 15.1}, {"name": "石の精霊", "hp": 152500.0, "atk": 11500.0, "crit": 22.2, "tenacity": 48.0, "speed": 117.8, "dodge": 80.0, "hit": 26.7, "vampire": 16.0}, {"name": "木怪", "hp": 31550.0, "atk": 2550.0, "crit": 22.2, "tenacity": 45.3, "speed": 117.8, "dodge": 77.8, "hit": 26.7, "vampire": 15.1}]}, {"id": "2910103", "coord": "4,4", "isBoss": false, "type": "通常", "xianLi": 146000000, "enemies": [{"name": "魔眼", "hp": 54650.0, "atk": 7450.0, "crit": 39.0, "tenacity": 26.0, "speed": 131.2, "dodge": 61.7, "hit": 46.8, "vampire": 0.0}, {"name": "魔眼", "hp": 54650.0, "atk": 7450.0, "crit": 39.0, "tenacity": 26.0, "speed": 131.2, "dodge": 61.7, "hit": 46.8, "vampire": 0.0}, {"name": "魔眼", "hp": 54650.0, "atk": 7450.0, "crit": 39.0, "tenacity": 26.0, "speed": 131.2, "dodge": 61.7, "hit": 46.8, "vampire": 0.0}]}, {"id": "2910108", "coord": "5,1", "isBoss": false, "type": "通常", "xianLi": 112500000, "enemies": [{"name": "魔眼", "hp": 76100.0, "atk": 11000.0, "crit": 36.1, "tenacity": 24.1, "speed": 128.9, "dodge": 60.1, "hit": 43.3, "vampire": 0.0}, {"name": "魔眼", "hp": 76100.0, "atk": 11000.0, "crit": 36.1, "tenacity": 24.1, "speed": 128.9, "dodge": 60.1, "hit": 43.3, "vampire": 0.0}]}, {"id": "2910109", "coord": "6,1", "isBoss": false, "type": "通常", "xianLi": 172500000, "enemies": [{"name": "石の精霊", "hp": 107500.0, "atk": 10000.0, "crit": 22.8, "tenacity": 49.2, "speed": 118.2, "dodge": 81.0, "hit": 27.3, "vampire": 16.4}, {"name": "石の精霊", "hp": 107500.0, "atk": 10000.0, "crit": 22.8, "tenacity": 49.2, "speed": 118.2, "dodge": 81.0, "hit": 27.3, "vampire": 16.4}]}, {"id": "2910104", "coord": "6,3", "isBoss": false, "type": "通常", "xianLi": 187500000, "enemies": [{"name": "魔眼", "hp": 26400.0, "atk": 3350.0, "crit": 41.9, "tenacity": 28.0, "speed": 133.5, "dodge": 63.3, "hit": 50.3, "vampire": 0.0}, {"name": "魔蠍", "hp": 124000.0, "atk": 15500.0, "crit": 23.3, "tenacity": 53.1, "speed": 118.6, "dodge": 84.3, "hit": 28.0, "vampire": 17.7}, {"name": "魔眼", "hp": 26400.0, "atk": 3350.0, "crit": 41.9, "tenacity": 28.0, "speed": 133.5, "dodge": 63.3, "hit": 50.3, "vampire": 0.0}]}, {"id": "2910105", "coord": "7,3", "isBoss": false, "type": "通常", "xianLi": 203000000, "enemies": [{"name": "石の精霊", "hp": 33700.0, "atk": 2750.0, "crit": 23.8, "tenacity": 51.5, "speed": 119.1, "dodge": 82.9, "hit": 28.6, "vampire": 17.2}, {"name": "魔蠍", "hp": 126000.0, "atk": 16000.0, "crit": 23.8, "tenacity": 54.3, "speed": 119.1, "dodge": 85.3, "hit": 28.6, "vampire": 18.1}, {"name": "石の精霊", "hp": 33700.0, "atk": 2750.0, "crit": 23.8, "tenacity": 51.5, "speed": 119.1, "dodge": 82.9, "hit": 28.6, "vampire": 17.2}]}], "崑崙": [{"id": "3010201", "coord": "7,0", "isBoss": true, "type": "BOSS", "xianLi": 272500000, "enemies": [{"name": "蓮花仙", "hp": 204000.0, "atk": 21500.0, "crit": 50.2, "tenacity": 60.2, "speed": 120.1, "dodge": 25.1, "hit": 60.2, "vampire": 30.0}]}, {"id": "3010109", "coord": "1,0", "isBoss": false, "type": "通常", "xianLi": 137000000, "enemies": [{"name": "女幽霊", "hp": 82200.0, "atk": 12000.0, "crit": 35.0, "tenacity": 42.0, "speed": 116.5, "dodge": 20.6, "hit": 42.0, "vampire": 30.0}, {"name": "女幽霊", "hp": 82200.0, "atk": 12000.0, "crit": 35.0, "tenacity": 42.0, "speed": 116.5, "dodge": 20.6, "hit": 42.0, "vampire": 30.0}]}, {"id": "3010105", "coord": "1,2", "isBoss": false, "type": "通常", "xianLi": 149500000, "enemies": [{"name": "女幽霊", "hp": 25450.0, "atk": 3200.0, "crit": 35.9, "tenacity": 43.1, "speed": 116.9, "dodge": 21.1, "hit": 43.1, "vampire": 30.0}, {"name": "丹青", "hp": 95950.0, "atk": 18500.0, "crit": 21.1, "tenacity": 25.4, "speed": 130.4, "dodge": 38.1, "hit": 25.4, "vampire": 45.2}, {"name": "女幽霊", "hp": 25450.0, "atk": 3200.0, "crit": 35.9, "tenacity": 43.1, "speed": 116.9, "dodge": 21.1, "hit": 43.1, "vampire": 30.0}]}, {"id": "3010106", "coord": "2,2", "isBoss": false, "type": "通常", "xianLi": 163000000, "enemies": [{"name": "丹青", "hp": 46150.0, "atk": 9850.0, "crit": 21.7, "tenacity": 26.0, "speed": 131.2, "dodge": 39.0, "hit": 26.0, "vampire": 45.6}, {"name": "丹青", "hp": 46150.0, "atk": 9850.0, "crit": 21.7, "tenacity": 26.0, "speed": 131.2, "dodge": 39.0, "hit": 26.0, "vampire": 45.6}, {"name": "丹青", "hp": 46150.0, "atk": 9850.0, "crit": 21.7, "tenacity": 26.0, "speed": 131.2, "dodge": 39.0, "hit": 26.0, "vampire": 45.6}]}, {"id": "3010102", "coord": "3,3", "isBoss": false, "type": "通常", "xianLi": 177500000, "enemies": [{"name": "女幽霊", "hp": 26850.0, "atk": 3350.0, "crit": 37.8, "tenacity": 45.3, "speed": 117.8, "dodge": 22.2, "hit": 45.3, "vampire": 30.0}, {"name": "酒童子", "hp": 83400.0, "atk": 23500.0, "crit": 40.0, "tenacity": 48.0, "speed": 117.8, "dodge": 22.2, "hit": 48.0, "vampire": 30.0}, {"name": "女幽霊", "hp": 26850.0, "atk": 3350.0, "crit": 37.8, "tenacity": 45.3, "speed": 117.8, "dodge": 22.2, "hit": 45.3, "vampire": 30.0}]}, {"id": "3010101", "coord": "3,4", "isBoss": false, "type": "通常", "xianLi": 125500000, "enemies": [{"name": "女幽霊", "hp": 81350.0, "atk": 11500.0, "crit": 34.1, "tenacity": 40.9, "speed": 116.1, "dodge": 20.1, "hit": 40.9, "vampire": 30.0}, {"name": "女幽霊", "hp": 81350.0, "atk": 11500.0, "crit": 34.1, "tenacity": 40.9, "speed": 116.1, "dodge": 20.1, "hit": 40.9, "vampire": 30.0}]}, {"id": "3010103", "coord": "5,3", "isBoss": false, "type": "通常", "xianLi": 193000000, "enemies": [{"name": "酒童子", "hp": 61650.0, "atk": 19500.0, "crit": 41.0, "tenacity": 49.2, "speed": 118.2, "dodge": 22.8, "hit": 49.2, "vampire": 30.0}, {"name": "酒童子", "hp": 61650.0, "atk": 19500.0, "crit": 41.0, "tenacity": 49.2, "speed": 118.2, "dodge": 22.8, "hit": 49.2, "vampire": 30.0}]}, {"id": "3010108", "coord": "6,1", "isBoss": false, "type": "通常", "xianLi": 227000000, "enemies": [{"name": "酒童子", "hp": 18950.0, "atk": 5450.0, "crit": 42.9, "tenacity": 51.5, "speed": 119.1, "dodge": 23.8, "hit": 51.5, "vampire": 30.0}, {"name": "猫面婆", "hp": 167000.0, "atk": 13500.0, "crit": 45.3, "tenacity": 54.3, "speed": 119.1, "dodge": 23.8, "hit": 54.3, "vampire": 30.0}, {"name": "酒童子", "hp": 18950.0, "atk": 5450.0, "crit": 42.9, "tenacity": 51.5, "speed": 119.1, "dodge": 23.8, "hit": 51.5, "vampire": 30.0}]}, {"id": "3010107", "coord": "6,2", "isBoss": false, "type": "通常", "xianLi": 209500000, "enemies": [{"name": "丹青", "hp": 22450.0, "atk": 4400.0, "crit": 23.3, "tenacity": 28.0, "speed": 133.5, "dodge": 41.9, "hit": 28.0, "vampire": 46.8}, {"name": "猫面婆", "hp": 165500.0, "atk": 13000.0, "crit": 44.3, "tenacity": 53.1, "speed": 118.6, "dodge": 23.3, "hit": 53.1, "vampire": 30.0}, {"name": "丹青", "hp": 22450.0, "atk": 4400.0, "crit": 23.3, "tenacity": 28.0, "speed": 133.5, "dodge": 41.9, "hit": 28.0, "vampire": 46.8}]}, {"id": "3010104", "coord": "7,3", "isBoss": false, "type": "通常", "xianLi": 125500000, "enemies": [{"name": "丹青", "hp": 64500.0, "atk": 14500.0, "crit": 20.1, "tenacity": 24.1, "speed": 128.9, "dodge": 36.1, "hit": 24.1, "vampire": 44.4}, {"name": "丹青", "hp": 64500.0, "atk": 14500.0, "crit": 20.1, "tenacity": 24.1, "speed": 128.9, "dodge": 36.1, "hit": 24.1, "vampire": 44.4}]}]}};
+
+let enemiesData = [];
+
+// Initialize
+function initStageSelectors() {
+  document.getElementById("floorSelect").value = "1";
+  document.getElementById("stageNameSelect").value = "廬山の滝";
+  onFloorOrStageChange();
+}
+
+function onFloorOrStageChange() {
+  const floor = document.getElementById("floorSelect").value;
+  const stageName = document.getElementById("stageNameSelect").value;
+  const battles = STRUCTURED_STAGES[floor]?.[stageName] || [];
+
+  const battleSelect = document.getElementById("battleSelect");
+  battleSelect.innerHTML = "";
+
+  battles.forEach((b, idx) => {
+    const opt = document.createElement("option");
+    opt.value = idx;
+    const names = b.enemies.map(e => e.name).join(" + ");
+    opt.textContent = `[${b.type}] (${b.coord}) 仙力:${b.xianLi.toLocaleString()} [${names}]`;
+    battleSelect.appendChild(opt);
+  });
+
+  // 自動的に敵情報を反映
+  onBattleSelectChange();
+}
+
+function onBattleSelectChange() {
+  const floor = document.getElementById("floorSelect").value;
+  const stageName = document.getElementById("stageNameSelect").value;
+  const battleIdx = parseInt(document.getElementById("battleSelect").value) || 0;
+  const battle = STRUCTURED_STAGES[floor]?.[stageName]?.[battleIdx];
+
+  const tip = document.getElementById("battleInfoTip");
+  if (battle) {
+    const summary = battle.enemies.map(e => `${e.name}(HP:${e.hp.toLocaleString()} / ATK:${e.atk.toLocaleString()})`).join(", ");
+    tip.textContent = `現在選択中の敵: ${summary}`;
+    // 自動更新
+    enemiesData = JSON.parse(JSON.stringify(battle.enemies));
+    renderEnemies();
+  } else {
+    tip.textContent = "";
+  }
+}
+
+function renderEnemies() {
+  const container = document.getElementById("enemyList");
+  container.innerHTML = "";
+  enemiesData.forEach((e, idx) => {
+    const div = document.createElement("div");
+    div.className = "enemy-block";
+    div.innerHTML = `
+      <div class="enemy-header">
+        <strong style="color: var(--accent-gold); font-size: 0.9rem;">敵 ${idx + 1}: ${e.name}</strong>
+        ${enemiesData.length > 1 ? `<button class="btn btn-sm btn-danger" onclick="removeEnemy(${idx})">削除</button>` : ''}
+      </div>
+      <div class="form-grid">
+        <div class="form-group"><label>攻撃 (ATK)</label><input type="number" value="${e.atk}" onchange="updateEnemy(${idx}, 'atk', this.value)"></div>
+        <div class="form-group"><label>HP (体力)</label><input type="number" value="${e.hp}" onchange="updateEnemy(${idx}, 'hp', this.value)"></div>
+
+        <div class="form-group"><label>吸血 (%)</label><input type="number" step="0.1" value="${e.vampire}" onchange="updateEnemy(${idx}, 'vampire', this.value)"></div>
+        <div class="form-group"><label>攻撃速度 (%)</label><input type="number" step="0.1" value="${e.speed}" onchange="updateEnemy(${idx}, 'speed', this.value)"></div>
+
+        <div class="form-group"><label>会心 (%)</label><input type="number" step="0.1" value="${e.crit}" onchange="updateEnemy(${idx}, 'crit', this.value)"></div>
+        <div class="form-group"><label>強靭 (%)</label><input type="number" step="0.1" value="${e.tenacity}" onchange="updateEnemy(${idx}, 'tenacity', this.value)"></div>
+
+        <div class="form-group"><label>回避 (%)</label><input type="number" step="0.1" value="${e.dodge}" onchange="updateEnemy(${idx}, 'dodge', this.value)"></div>
+        <div class="form-group"><label>命中 (%)</label><input type="number" step="0.1" value="${e.hit}" onchange="updateEnemy(${idx}, 'hit', this.value)"></div>
+      </div>
+    `;
+    container.appendChild(div);
+  });
+}
+
+function updateEnemy(index, field, value) {
+  enemiesData[index][field] = parseFloat(value) || 0;
+}
+
+function addEnemy() {
+  enemiesData.push({
+    name: `手下${enemiesData.length + 1}`,
+    hp: 5000,
+    atk: 1000,
+    speed: 120.0,
+    vampire: 0.0,
+    crit: 15.0,
+    tenacity: 10.0,
+    dodge: 15.0,
+    hit: 15.0
+  });
+  renderEnemies();
+}
+
+function removeEnemy(index) {
+  enemiesData.splice(index, 1);
+  renderEnemies();
+}
+
+// Copy tools
+function copyAtoB() {
+  const fields = ['atk', 'hp', 'vampire', 'speed', 'crit', 'tenacity', 'dodge', 'hit'];
+  fields.forEach(f => {
+    document.getElementById(`pB_${f}`).value = document.getElementById(`pA_${f}`).value;
+  });
+}
+
+function copyBtoA() {
+  const fields = ['atk', 'hp', 'vampire', 'speed', 'crit', 'tenacity', 'dodge', 'hit'];
+  fields.forEach(f => {
+    document.getElementById(`pA_${f}`).value = document.getElementById(`pB_${f}`).value;
+  });
+}
+
+function getPlayerConfig(prefix) {
+  return {
+    hp: parseFloat(document.getElementById(`${prefix}_hp`).value) || 1,
+    atk: parseFloat(document.getElementById(`${prefix}_atk`).value) || 0,
+    speed: parseFloat(document.getElementById(`${prefix}_speed`).value) || 100,
+    vampire: parseFloat(document.getElementById(`${prefix}_vampire`).value) || 0,
+    crit: parseFloat(document.getElementById(`${prefix}_crit`).value) || 0,
+    tenacity: parseFloat(document.getElementById(`${prefix}_tenacity`).value) || 0,
+    dodge: parseFloat(document.getElementById(`${prefix}_dodge`).value) || 0,
+    hit: parseFloat(document.getElementById(`${prefix}_hit`).value) || 0
+  };
+}
+
+// SIMULATION & STATISTICS
+function runCompareSimulation() {
+  if (enemiesData.length === 0) {
+    alert("敵が設定されていません。敵を追加するかステージを選択してください。");
+    return;
+  }
+
+  const pA = getPlayerConfig("pA");
+  const pB = getPlayerConfig("pB");
+  const trials = parseInt(document.getElementById("simTrials").value) || 10000;
+  const autoSkill = document.getElementById("autoSkill").value === "true";
+  const targetPriority = document.getElementById("targetPriority").value;
+
+  const resA = runBatchSimulation(pA, enemiesData, trials, autoSkill, targetPriority);
+  const resB = runBatchSimulation(pB, enemiesData, trials, autoSkill, targetPriority);
+
+  displayComparisonResults(resA, resB, trials, pA, pB);
+}
+
+function calculateProbMetrics(winRatePct) {
+  const p = winRatePct / 100.0;
+  if (p <= 0) {
+    return {
+      p100: 0.0,
+      n50: "∞",
+      n80: "∞",
+      n90: "∞",
+      n99: "∞"
+    };
+  }
+  if (p >= 1.0) {
+    return {
+      p100: 100.0,
+      n50: 1,
+      n80: 1,
+      n90: 1,
+      n99: 1
+    };
+  }
+
+  // P(100回以内に1回以上勝利) = 1 - (1 - p)^100
+  const p100 = (1.0 - Math.pow(1.0 - p, 100)) * 100.0;
+
+  function getN(target) {
+    // 1 - (1 - p)^N >= target => N >= ln(1 - target) / ln(1 - p)
+    const n = Math.ceil(Math.log(1.0 - target) / Math.log(1.0 - p));
+    return n.toLocaleString() + "回";
+  }
+
+  return {
+    p100: p100,
+    n50: getN(0.50),
+    n80: getN(0.80),
+    n90: getN(0.90),
+    n99: getN(0.99)
+  };
+}
+
+function runBatchSimulation(p_def, e_defs, trials, autoSkill, targetPriority) {
+  let winCount = 0;
+  let totalWinTime = 0;
+  let totalWinHp = 0;
+
+  for (let i = 0; i < trials; i++) {
+    const res = simulateSingle(p_def, e_defs, autoSkill, targetPriority);
+    if (res.win) {
+      winCount++;
+      totalWinTime += res.time;
+      totalWinHp += res.hp;
+    }
+  }
+
+  const winRate = (winCount / trials) * 100.0;
+  const avgTime = winCount > 0 ? (totalWinTime / winCount / 1000) : 0;
+  const avgHp = winCount > 0 ? (totalWinHp / winCount) : 0;
+  const avgHpRate = (avgHp / p_def.hp) * 100.0;
+
+  const probMetrics = calculateProbMetrics(winRate);
+
+  return { winCount, winRate, avgTime, avgHp, avgHpRate, probMetrics };
+}
+
+function simulateSingle(p_def, e_defs, autoSkill, targetPriority) {
+  const p = {
+    maxHp: p_def.hp,
+    curHp: p_def.hp,
+    atk: p_def.atk,
+    vampire: p_def.vampire,
+    crit: p_def.crit,
+    tenacity: p_def.tenacity,
+    dodge: p_def.dodge,
+    hit: p_def.hit,
+    interval: Math.ceil(1000.0 / (p_def.speed / 100.0)),
+    nextTime: 0,
+    count: 0
+  };
+
+  const enemies = e_defs.map(e => ({
+    maxHp: e.hp,
+    curHp: e.hp,
+    atk: e.atk,
+    vampire: e.vampire,
+    crit: e.crit,
+    tenacity: e.tenacity,
+    dodge: e.dodge,
+    hit: e.hit,
+    interval: Math.ceil(1000.0 / (e.speed / 100.0)),
+    nextTime: 0,
+    count: 0
+  }));
+
+  let currentTime = 0;
+  let lastAngerReset = 0;
+
+  function scheduleNext(unit) {
+    unit.count++;
+    if (unit.count === 1) {
+      unit.nextTime = 2 * unit.interval;
+    } else {
+      unit.nextTime = (unit.count + 1) * unit.interval;
+    }
+  }
+
+  while (p.curHp > 0) {
+    const aliveEnemies = enemies.filter(e => e.curHp > 0);
+    if (aliveEnemies.length === 0) {
+      return { win: true, time: currentTime, hp: p.curHp };
+    }
+
+    let minTime = p.nextTime;
+    let actorType = "player";
+    let enemyActor = null;
+
+    for (let e of aliveEnemies) {
+      if (e.nextTime < minTime) {
+        minTime = e.nextTime;
+        actorType = "enemy";
+        enemyActor = e;
+      }
+    }
+
+    currentTime = minTime;
+
+    // 怒り蓄積: 秒間200 (0.2/ms)
+    const timeSinceReset = currentTime - lastAngerReset;
+    const anger = Math.min(1000, Math.round((timeSinceReset * 0.2) / 20.0) * 20);
+
+    if (actorType === "player") {
+      const isSkill = autoSkill && (anger >= 1000);
+
+      if (isSkill) {
+        // 全体攻撃 (絶技)
+        lastAngerReset = currentTime;
+        for (let target of aliveEnemies) {
+          const effDodge = Math.min(0.80, Math.max(0.0, (target.dodge - p.hit) / 100.0));
+          if (Math.random() >= effDodge) {
+            const effCrit = Math.max(0.0, (p.crit - target.tenacity) / 100.0);
+            const isCrit = Math.random() < effCrit;
+            const dmg = isCrit ? p.atk * 2 : p.atk;
+            target.curHp -= Math.min(target.curHp, dmg);
+          }
+        }
+      } else {
+        // 通常攻撃 (単体)
+        let target;
+        if (targetPriority === "minCurHp") {
+          target = aliveEnemies.reduce((prev, curr) => curr.curHp < prev.curHp ? curr : prev);
+        } else if (targetPriority === "minMaxHp") {
+          target = aliveEnemies.reduce((prev, curr) => curr.maxHp < prev.maxHp ? curr : prev);
+        } else {
+          target = aliveEnemies.reduce((prev, curr) => curr.maxHp > prev.maxHp ? curr : prev);
+        }
+
+        const effDodge = Math.min(0.80, Math.max(0.0, (target.dodge - p.hit) / 100.0));
+        if (Math.random() >= effDodge) {
+          const effCrit = Math.max(0.0, (p.crit - target.tenacity) / 100.0);
+          const isCrit = Math.random() < effCrit;
+          const dmg = isCrit ? p.atk * 2 : p.atk;
+          const actualDmg = Math.min(target.curHp, dmg);
+          target.curHp -= actualDmg;
+
+          if (p.vampire > 0 && actualDmg > 0) {
+            const heal = Math.ceil(actualDmg * (p.vampire / 100.0));
+            p.curHp = Math.min(p.maxHp, p.curHp + heal);
+          }
+        }
+      }
+      scheduleNext(p);
+    } else {
+      // 敵の通常攻撃
+      const effDodge = Math.min(0.80, Math.max(0.0, (p.dodge - enemyActor.hit) / 100.0));
+      if (Math.random() >= effDodge) {
+        const effCrit = Math.max(0.0, (enemyActor.crit - p.tenacity) / 100.0);
+        const isCrit = Math.random() < effCrit;
+        const dmg = isCrit ? enemyActor.atk * 2 : enemyActor.atk;
+        const actualDmg = Math.min(p.curHp, dmg);
+        p.curHp -= actualDmg;
+
+        if (enemyActor.vampire > 0 && actualDmg > 0) {
+          const heal = Math.ceil(actualDmg * (enemyActor.vampire / 100.0));
+          enemyActor.curHp = Math.min(enemyActor.maxHp, enemyActor.curHp + heal);
+        }
+      }
+      scheduleNext(enemyActor);
+    }
+  }
+
+  return { win: false, time: currentTime, hp: 0 };
+}
+
+function displayComparisonResults(resA, resB, trials, pA, pB) {
+  const card = document.getElementById("compareResultCard");
+  card.style.display = "block";
+
+  // Side A
+  document.getElementById("winRateA").textContent = `${resA.winRate.toFixed(2)}%`;
+  document.getElementById("winRateA").style.color = getWinRateColor(resA.winRate);
+  document.getElementById("winCountA").textContent = `${resA.winCount.toLocaleString()} / ${trials.toLocaleString()}`;
+  document.getElementById("avgTimeA").textContent = resA.winCount > 0 ? `${resA.avgTime.toFixed(2)} 秒` : "-";
+  document.getElementById("avgHpA").textContent = resA.winCount > 0 ? `${Math.round(resA.avgHp).toLocaleString()} (${resA.avgHpRate.toFixed(1)}%)` : "-";
+
+  // Metrics A
+  document.getElementById("win100RateA").textContent = `${resA.probMetrics.p100.toFixed(2)}%`;
+  document.getElementById("n50A").textContent = resA.probMetrics.n50;
+  document.getElementById("n80A").textContent = resA.probMetrics.n80;
+  document.getElementById("n90A").textContent = resA.probMetrics.n90;
+  document.getElementById("n99A").textContent = resA.probMetrics.n99;
+
+  // Side B
+  document.getElementById("winRateB").textContent = `${resB.winRate.toFixed(2)}%`;
+  document.getElementById("winRateB").style.color = getWinRateColor(resB.winRate);
+  document.getElementById("winCountB").textContent = `${resB.winCount.toLocaleString()} / ${trials.toLocaleString()}`;
+  document.getElementById("avgTimeB").textContent = resB.winCount > 0 ? `${resB.avgTime.toFixed(2)} 秒` : "-";
+  document.getElementById("avgHpB").textContent = resB.winCount > 0 ? `${Math.round(resB.avgHp).toLocaleString()} (${resB.avgHpRate.toFixed(1)}%)` : "-";
+
+  // Metrics B
+  document.getElementById("win100RateB").textContent = `${resB.probMetrics.p100.toFixed(2)}%`;
+  document.getElementById("n50B").textContent = resB.probMetrics.n50;
+  document.getElementById("n80B").textContent = resB.probMetrics.n80;
+  document.getElementById("n90B").textContent = resB.probMetrics.n90;
+  document.getElementById("n99B").textContent = resB.probMetrics.n99;
+
+  const diffA = resA.winRate - resB.winRate;
+  const diffB = resB.winRate - resA.winRate;
+
+  setDiffBadge("diffBadgeA", diffA);
+  setDiffBadge("diffBadgeB", diffB);
+
+  // Winner highlights
+  const cardA = document.getElementById("cardA");
+  const cardB = document.getElementById("cardB");
+  cardA.classList.remove("winner");
+  cardB.classList.remove("winner");
+
+  const verdict = document.getElementById("verdictText");
+  if (Math.abs(diffA) < 0.2) {
+    verdict.innerHTML = `両構成の勝率はほぼ同等です（差: ${Math.abs(diffA).toFixed(2)}%）。100回以内確率や残りHPを考慮して選択してください。`;
+    verdict.style.color = "var(--text-main)";
+  } else if (diffA > 0) {
+    cardA.classList.add("winner");
+    verdict.innerHTML = `【構成 A】が突破率で <span style="color:var(--success);">+${diffA.toFixed(2)}%</span> 優位です！`;
+    verdict.style.color = "var(--accent-gold)";
+  } else {
+    cardB.classList.add("winner");
+    verdict.innerHTML = `【構成 B】が突破率で <span style="color:var(--accent-blue);">+${diffB.toFixed(2)}%</span> 優位です！`;
+    verdict.style.color = "var(--accent-blue)";
+  }
+}
+
+function setDiffBadge(elemId, diff) {
+  const elem = document.getElementById(elemId);
+  if (Math.abs(diff) < 0.05) {
+    elem.className = "diff-badge diff-even";
+    elem.textContent = "±0.00%";
+  } else if (diff > 0) {
+    elem.className = "diff-badge diff-plus";
+    elem.textContent = `+${diff.toFixed(2)}%`;
+  } else {
+    elem.className = "diff-badge diff-minus";
+    elem.textContent = `${diff.toFixed(2)}%`;
+  }
+}
+
+function getWinRateColor(rate) {
+  return rate >= 70 ? "var(--success)" : (rate >= 30 ? "var(--warning)" : "var(--danger)");
+}
+
+// Initial Run
+window.addEventListener("DOMContentLoaded", () => {
+  initStageSelectors();
+});
+</script>
+</body>
+</html>
