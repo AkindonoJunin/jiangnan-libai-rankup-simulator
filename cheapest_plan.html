@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>デイリー累計課金 最安プラン計算</title>
+<style>
+  body {
+    font-family: system-ui, "Hiragino Sans", "Yu Gothic", sans-serif;
+    margin: 0;
+    padding: 16px;
+    background: #f5f6f8;
+    color: #222;
+  }
+  main { max-width: 960px; margin: 0 auto; }
+  h1 { font-size: 1.4rem; }
+  h2 { font-size: 1.1rem; margin-top: 0; }
+  section {
+    background: #fff;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+  .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
+  label { display: flex; flex-direction: column; font-size: 0.85rem; gap: 4px; }
+  input, select, button, textarea { font: inherit; padding: 6px 8px; }
+  input[type="number"] { width: 90px; }
+  input[type="text"] { width: 130px; }
+  textarea { width: 100%; box-sizing: border-box; min-height: 120px; font-family: monospace; font-size: 0.8rem; }
+  table { border-collapse: collapse; width: 100%; margin-bottom: 8px; }
+  th, td { border-bottom: 1px solid #ddd; padding: 4px; text-align: left; font-size: 0.85rem; }
+  button { cursor: pointer; border: 1px solid #888; border-radius: 4px; background: #fff; }
+  button.primary { background: #2563eb; color: #fff; border-color: #2563eb; }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  pre {
+    background: #111827;
+    color: #e5e7eb;
+    padding: 12px;
+    border-radius: 6px;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    font-size: 0.85rem;
+  }
+  details { margin-top: 12px; }
+  summary { cursor: pointer; font-size: 0.9rem; }
+  .ok { color: #15803d; font-weight: bold; }
+  .ng { color: #b91c1c; font-weight: bold; }
+  .note { font-size: 0.8rem; color: #555; }
+</style>
+</head>
+<body>
+<main>
+  <h1>デイリー累計課金 最安プラン計算</h1>
+
+  <section>
+    <h2>プリセット</h2>
+    <div class="row">
+      <label>選択
+        <select id="preset"></select>
+      </label>
+      <button type="button" id="deleteBtn">選択中の保存済みプリセットを削除</button>
+    </div>
+    <div class="row" style="margin-top: 12px;">
+      <label>現在の入力を保存（プリセット名）
+        <input type="text" id="presetName" style="width: 220px;" placeholder="例: 新イベント">
+      </label>
+      <button type="button" id="saveBtn">プリセットとして保存</button>
+    </div>
+    <p id="presetMsg" class="note"></p>
+
+    <details>
+      <summary>書き出し / 取り込み（JSON）</summary>
+      <p class="note">
+        「書き出し」は保存済みプリセットをJSONにします。他の人に渡す場合はこのJSONを共有し、
+        受け取った側は貼り付けて「取り込み」を押してください。同名のプリセットは上書きされます。
+      </p>
+      <textarea id="jsonArea" spellcheck="false"></textarea>
+      <div class="row" style="margin-top: 8px;">
+        <button type="button" id="exportBtn">保存済みプリセットを書き出し</button>
+        <button type="button" id="copyBtn">コピー</button>
+        <button type="button" id="importBtn">取り込み</button>
+      </div>
+    </details>
+  </section>
+
+  <section>
+    <h2>条件</h2>
+    <div class="row">
+      <label>日数 <input type="number" id="days" min="1" max="10" value="3"></label>
+      <label>目標個数 <input type="number" id="target" min="1" value="71"></label>
+      <label>表示件数 (TOP N) <input type="number" id="topn" min="1" max="50" value="5"></label>
+      <label>通貨単位 <input type="text" id="unit" value="VIP"></label>
+    </div>
+  </section>
+
+  <section>
+    <h2>直接購入パック</h2>
+    <p class="note">日次上限・期間上限は空欄で無制限です。どちらか一方は必ず入力してください。</p>
+    <table>
+      <thead>
+        <tr><th>名前</th><th>費用</th><th>個数</th><th>日次上限</th><th>期間上限</th><th></th></tr>
+      </thead>
+      <tbody id="packBody"></tbody>
+    </table>
+    <button type="button" id="addPack">パックを追加</button>
+  </section>
+
+  <section>
+    <h2>デイリー累計課金ティア</h2>
+    <table>
+      <thead>
+        <tr><th>課金額</th><th>獲得個数</th><th></th></tr>
+      </thead>
+      <tbody id="tierBody"></tbody>
+    </table>
+    <button type="button" id="addTier">ティアを追加</button>
+  </section>
+
+  <section>
+    <div class="row">
+      <button type="button" class="primary" id="runBtn">計算する</button>
+      <button type="button" id="verifyBtn">DPで最安値を検算する</button>
+    </div>
+    <p id="verifyMsg"></p>
+    <pre id="output">ここに結果が表示されます。</pre>
+  </section>
+</main>
+
+<script>
+// ============================================================
+// 組み込みプリセット（恒久的に追加したい場合はここに追記）
+// packs: daily = 日次上限, total = 期間上限（無制限は null）
+// tiers: [課金額, 獲得個数]
+// ============================================================
+const BUILTIN_PRESETS = [
+  {
+    id: "kaifuu",
+    label: "開封運動会",
+    days: 3,
+    target: 71,
+    packs: [
+      { name: "160", cost: 8, qty: 4, daily: 1, total: null },
+      { name: "800", cost: 44, qty: 9, daily: 1, total: null },
+      { name: "1600", cost: 98, qty: 11, daily: 1, total: null },
+      { name: "2400", cost: 128, qty: 16, daily: 1, total: null },
+      { name: "4800", cost: 254, qty: 32, daily: 1, total: null },
+      { name: "8000", cost: 439, qty: 54, daily: 1, total: null },
+      { name: "15800", cost: 864, qty: 108, daily: 1, total: null }
+    ],
+    tiers: [
+      [0, 0], [6, 5], [30, 10], [98, 20], [198, 32],
+      [324, 50], [540, 85], [1000, 185], [2000, 305]
+    ]
+  },
+    {
+    id: "koorogi",
+    label: "こおろぎ市場",
+    days: 3,
+    target: 46,
+    packs: [
+      { name: "160", cost: 8, qty: 2, daily: 1, total: null },
+      { name: "800", cost: 44, qty: 11, daily: 1, total: null },
+      { name: "2400", cost: 128, qty: 20, daily: 1, total: null },
+      { name: "4800", cost: 254, qty: 35, daily: 2, total: null },
+      { name: "4800", cost: 254, qty: 48, daily: null, total: 1 },
+      { name: "8000", cost: 439, qty: 56, daily: 3, total: null },
+      { name: "15800", cost: 864, qty: 106, daily: 3, total: null }
+    ],
+    tiers: [
+      [0, 0], [6, 5], [30, 11], [98, 21], [198, 33],
+      [324, 51], [540, 86], [1000, 186], [2000, 306]
+    ]
+  },
+  {
+    id: "enrei",
+    label: "艶麗無双",
+    days: 3,
+    target: 70,
+    packs: [
+      { name: "160", cost: 8, qty: 2, daily: 1, total: null },
+      { name: "800", cost: 44, qty: 5, daily: 1, total: null },
+      { name: "2400", cost: 128, qty: 12, daily: 1, total: null },
+      { name: "4800", cost: 254, qty: 20, daily: 1, total: null },
+      { name: "8000", cost: 439, qty: 32, daily: 1, total: null }
+    ],
+    tiers: [
+      [0, 0], [6, 4], [30, 10], [98, 18], [198, 30],
+      [324, 45], [540, 80], [1000, 170], [2000, 270]
+    ]
+  }
+];
+
+const STORAGE_KEY = "cumPlanUserPresets_v1";
+const MAX_DIRECT_COMBOS = 3000000;
+
+// ---------- ユーザープリセットの保存 ----------
+let userPresets = [];
+
+function loadUserPresets() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    userPresets = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(userPresets)) userPresets = [];
+  } catch (e) {
+    userPresets = [];
+  }
+}
+
+function persistUserPresets() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(userPresets));
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+function newId() {
+  return "u" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+
+function showPresetMsg(text, isError) {
+  const el = document.getElementById("presetMsg");
+  el.textContent = text;
+  el.className = isError ? "ng" : "note";
+}
+
+function validatePreset(p) {
+  const isNum = (v) => typeof v === "number" && isFinite(v);
+  const isNumOrNull = (v) => v === null || isNum(v);
+  if (!p || typeof p !== "object") return "形式が不正です。";
+  if (typeof p.label !== "string" || p.label.trim() === "") return "名前（label）がありません。";
+  if (!isNum(p.days) || p.days < 1) return `「${p.label}」: days が不正です。`;
+  if (!isNum(p.target) || p.target < 1) return `「${p.label}」: target が不正です。`;
+  if (!Array.isArray(p.packs)) return `「${p.label}」: packs が配列ではありません。`;
+  for (const k of p.packs) {
+    if (!k || typeof k.name !== "string" || !isNum(k.cost) || !isNum(k.qty)
+        || !isNumOrNull(k.daily) || !isNumOrNull(k.total)) {
+      return `「${p.label}」: packs に不正な項目があります。`;
+    }
+  }
+  if (!Array.isArray(p.tiers)) return `「${p.label}」: tiers が配列ではありません。`;
+  for (const t of p.tiers) {
+    if (!Array.isArray(t) || t.length !== 2 || !isNum(t[0]) || !isNum(t[1])) {
+      return `「${p.label}」: tiers に不正な項目があります。`;
+    }
+  }
+  return null;
+}
+
+// ---------- 入力の読み書き ----------
+function makeDeleteCell(tr) {
+  const td = document.createElement("td");
+  const del = document.createElement("button");
+  del.type = "button";
+  del.textContent = "削除";
+  del.addEventListener("click", () => tr.remove());
+  td.appendChild(del);
+  return td;
+}
+
+function addPackRow(p) {
+  const tr = document.createElement("tr");
+  const fields = [
+    ["name", "text", p.name],
+    ["cost", "number", p.cost],
+    ["qty", "number", p.qty],
+    ["daily", "number", p.daily],
+    ["total", "number", p.total]
+  ];
+  for (const [key, type, val] of fields) {
+    const td = document.createElement("td");
+    const input = document.createElement("input");
+    input.type = type;
+    input.dataset.key = key;
+    if (type === "number") input.min = "0";
+    input.value = val === null || val === undefined ? "" : val;
+    td.appendChild(input);
+    tr.appendChild(td);
+  }
+  tr.appendChild(makeDeleteCell(tr));
+  document.getElementById("packBody").appendChild(tr);
+}
+
+function addTierRow(spend, qty) {
+  const tr = document.createElement("tr");
+  for (const [key, val] of [["spend", spend], ["qty", qty]]) {
+    const td = document.createElement("td");
+    const input = document.createElement("input");
+    input.type = "number";
+    input.min = "0";
+    input.dataset.key = key;
+    input.value = val === null || val === undefined ? "" : val;
+    td.appendChild(input);
+    tr.appendChild(td);
+  }
+  tr.appendChild(makeDeleteCell(tr));
+  document.getElementById("tierBody").appendChild(tr);
+}
+
+function numOrNull(v) {
+  return v === "" ? null : Number(v);
+}
+
+function readPacks() {
+  return Array.from(document.querySelectorAll("#packBody tr")).map((tr) => {
+    const get = (k) => tr.querySelector(`[data-key="${k}"]`).value;
+    return {
+      name: get("name"),
+      cost: Number(get("cost")),
+      qty: Number(get("qty")),
+      daily: numOrNull(get("daily")),
+      total: numOrNull(get("total"))
+    };
+  });
+}
+
+function readTiers() {
+  return Array.from(document.querySelectorAll("#tierBody tr")).map((tr) => ({
+    spend: Number(tr.querySelector('[data-key="spend"]').value),
+    qty: Number(tr.querySelector('[data-key="qty"]').value)
+  }));
+}
+
+function applyPreset(pr) {
+  document.getElementById("days").value = pr.days;
+  document.getElementById("target").value = pr.target;
+  document.getElementById("packBody").innerHTML = "";
+  document.getElementById("tierBody").innerHTML = "";
+  pr.packs.forEach(addPackRow);
+  pr.tiers.forEach(([s, q]) => addTierRow(s, q));
+  document.getElementById("verifyMsg").textContent = "";
+  document.getElementById("output").textContent = "ここに結果が表示されます。";
+}
+
+// ---------- プリセット選択UI ----------
+function renderPresetSelect(selectedValue) {
+  const sel = document.getElementById("preset");
+  sel.innerHTML = "";
+
+  const gBuiltin = document.createElement("optgroup");
+  gBuiltin.label = "組み込み";
+  for (const p of BUILTIN_PRESETS) {
+    const opt = document.createElement("option");
+    opt.value = "b:" + p.id;
+    opt.textContent = p.label;
+    gBuiltin.appendChild(opt);
+  }
+  sel.appendChild(gBuiltin);
+
+  if (userPresets.length > 0) {
+    const gUser = document.createElement("optgroup");
+    gUser.label = "保存済み";
+    for (const p of userPresets) {
+      const opt = document.createElement("option");
+      opt.value = "u:" + p.id;
+      opt.textContent = p.label;
+      gUser.appendChild(opt);
+    }
+    sel.appendChild(gUser);
+  }
+
+  if (selectedValue && Array.from(sel.options).some((o) => o.value === selectedValue)) {
+    sel.value = selectedValue;
+  }
+  updateDeleteButton();
+}
+
+function findPreset(value) {
+  const [kind, id] = value.split(":");
+  const list = kind === "b" ? BUILTIN_PRESETS : userPresets;
+  return list.find((p) => p.id === id) || null;
+}
+
+function updateDeleteButton() {
+  const value = document.getElementById("preset").value;
+  document.getElementById("deleteBtn").disabled = !value.startsWith("u:");
+}
+
+function onPresetChange() {
+  const value = document.getElementById("preset").value;
+  const pr = findPreset(value);
+  if (pr) {
+    applyPreset(pr);
+    document.getElementById("presetName").value = value.startsWith("u:") ? pr.label : "";
+  }
+  updateDeleteButton();
+  showPresetMsg("", false);
+}
+
+function snapshotCurrent(label) {
+  return {
+    label,
+    days: Math.max(1, parseInt(document.getElementById("days").value, 10) || 1),
+    target: parseInt(document.getElementById("target").value, 10) || 1,
+    packs: readPacks(),
+    tiers: readTiers().map((t) => [t.spend, t.qty])
+  };
+}
+
+function savePreset() {
+  const name = document.getElementById("presetName").value.trim();
+  if (name === "") {
+    showPresetMsg("プリセット名を入力してください。", true);
+    return;
+  }
+  if (BUILTIN_PRESETS.some((p) => p.label === name)) {
+    showPresetMsg("組み込みプリセットと同じ名前は使えません。別の名前にしてください。", true);
+    return;
+  }
+  const snap = snapshotCurrent(name);
+  const err = validatePreset(snap);
+  if (err) {
+    showPresetMsg(err + " 入力欄に空欄や数値以外がないか確認してください。", true);
+    return;
+  }
+  const existing = userPresets.find((p) => p.label === name);
+  if (existing) {
+    if (!confirm(`「${name}」はすでに保存されています。上書きしますか？`)) return;
+    Object.assign(existing, snap);
+  } else {
+    userPresets.push({ id: newId(), ...snap });
+  }
+  const saved = userPresets.find((p) => p.label === name);
+  const ok = persistUserPresets();
+  renderPresetSelect("u:" + saved.id);
+  showPresetMsg(
+    ok
+      ? `「${name}」を保存しました。`
+      : "このブラウザでは保存できませんでした。この画面を開いている間のみ有効です。JSONの書き出しで控えを取ってください。",
+    !ok
+  );
+}
+
+function deletePreset() {
+  const value = document.getElementById("preset").value;
+  if (!value.startsWith("u:")) return;
+  const pr = findPreset(value);
+  if (!pr || !confirm(`「${pr.label}」を削除しますか？`)) return;
+  userPresets = userPresets.filter((p) => p.id !== pr.id);
+  persistUserPresets();
+  renderPresetSelect("b:" + BUILTIN_PRESETS[0].id);
+  onPresetChange();
+  showPresetMsg(`「${pr.label}」を削除しました。`, false);
+}
+
+function exportPresets() {
+  const area = document.getElementById("jsonArea");
+  if (userPresets.length === 0) {
+    area.value = "";
+    showPresetMsg("書き出す保存済みプリセットがありません。", true);
+    return;
+  }
+  const data = userPresets.map(({ label, days, target, packs, tiers }) => (
+    { label, days, target, packs, tiers }
+  ));
+  area.value = JSON.stringify(data, null, 2);
+  showPresetMsg(`${data.length} 件を書き出しました。`, false);
+}
+
+function copyJson() {
+  const area = document.getElementById("jsonArea");
+  if (area.value === "") {
+    showPresetMsg("コピーする内容がありません。", true);
+    return;
+  }
+  area.select();
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(area.value).then(
+      () => showPresetMsg("コピーしました。", false),
+      () => showPresetMsg("コピーに失敗しました。手動でコピーしてください。", true)
+    );
+  } else {
+    showPresetMsg("選択しました。Ctrl+C（Macでは Command+C）でコピーしてください。", false);
+  }
+}
+
+function importPresets() {
+  const text = document.getElementById("jsonArea").value.trim();
+  if (text === "") {
+    showPresetMsg("取り込むJSONを貼り付けてください。", true);
+    return;
+  }
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch (e) {
+    showPresetMsg("JSONとして読み取れませんでした。", true);
+    return;
+  }
+  if (!Array.isArray(data)) data = [data];
+  for (const p of data) {
+    const err = validatePreset(p);
+    if (err) {
+      showPresetMsg("取り込みを中止しました: " + err, true);
+      return;
+    }
+    if (BUILTIN_PRESETS.some((b) => b.label === p.label)) {
+      showPresetMsg(`取り込みを中止しました: 「${p.label}」は組み込みと同名です。`, true);
+      return;
+    }
+  }
+  let added = 0;
+  let updated = 0;
+  for (const p of data) {
+    const clean = {
+      label: p.label.trim(),
+      days: p.days,
+      target: p.target,
+      packs: p.packs,
+      tiers: p.tiers
+    };
+    const existing = userPresets.find((u) => u.label === clean.label);
+    if (existing) {
+      Object.assign(existing, clean);
+      updated++;
+    } else {
+      userPresets.push({ id: newId(), ...clean });
+      added++;
+    }
+  }
+  const ok = persistUserPresets();
+  renderPresetSelect(document.getElementById("preset").value);
+  showPresetMsg(
+    `取り込み完了: 追加 ${added} 件 / 上書き ${updated} 件`
+      + (ok ? "" : "（このブラウザには保存できませんでした）"),
+    !ok
+  );
+}
+
+// ---------- 全列挙による探索 (Python版の移植) ----------
+function maxCountOf(p, days) {
+  const byDays = p.daily !== null ? p.daily * days : Infinity;
+  const byTotal = p.total !== null ? p.total : Infinity;
+  const m = Math.min(byDays, byTotal);
+  if (!isFinite(m)) {
+    throw new Error(`パック「${p.name}」に日次上限も期間上限もありません。`);
+  }
+  return Math.floor(m);
+}
+
+function buildCumPatterns(tiers, days) {
+  const patterns = [];
+  const pick = [];
+  function rec(start, left) {
+    if (left === 0) {
+      let cost = 0;
+      let qty = 0;
+      for (const i of pick) {
+        cost += tiers[i].spend;
+        qty += tiers[i].qty;
+      }
+      patterns.push({ cost, qty, spends: pick.map((i) => tiers[i].spend) });
+      return;
+    }
+    for (let i = start; i < tiers.length; i++) {
+      pick.push(i);
+      rec(i, left - 1);
+      pick.pop();
+    }
+  }
+  rec(0, days);
+  return patterns;
+}
+
+function buildDirectCombos(packs, days) {
+  const maxes = packs.map((p) => maxCountOf(p, days));
+  const size = maxes.reduce((a, m) => a * (m + 1), 1);
+  if (size > MAX_DIRECT_COMBOS) {
+    throw new Error(`直接購入の組み合わせが ${size.toLocaleString()} 通りあり、上限を超えています。`);
+  }
+  let combos = [{ cost: 0, qty: 0, counts: [] }];
+  packs.forEach((p, idx) => {
+    const next = [];
+    for (const c of combos) {
+      for (let n = 0; n <= maxes[idx]; n++) {
+        next.push({
+          cost: c.cost + p.cost * n,
+          qty: c.qty + p.qty * n,
+          counts: c.counts.concat(n)
+        });
+      }
+    }
+    combos = next;
+  });
+  combos.sort((a, b) => a.cost - b.cost || b.qty - a.qty);
+  return combos;
+}
+
+function solveDailyCumCheapest(target, days, packs, tiers, topN) {
+  const cumPatterns = buildCumPatterns(tiers, days);
+  const directCombos = buildDirectCombos(packs, days);
+  let best = [];
+
+  for (const cp of cumPatterns) {
+    for (const dc of directCombos) {
+      const totalCost = cp.cost + dc.cost;
+      if (best.length >= topN && totalCost > best[best.length - 1].totalCost) {
+        break;
+      }
+      const totalQty = cp.qty + dc.qty;
+      if (totalQty < target) continue;
+      best.push({
+        totalCost,
+        totalQty,
+        dailySpends: cp.spends,
+        directCounts: dc.counts,
+        cumCost: cp.cost,
+        cumQty: cp.qty,
+        directCost: dc.cost,
+        directQty: dc.qty
+      });
+      best.sort((a, b) => a.totalCost - b.totalCost || b.totalQty - a.totalQty);
+      if (best.length > topN) best.length = topN;
+    }
+  }
+  return best;
+}
+
+// ---------- 検算用: 動的計画法による最小コスト ----------
+function solveByDP(target, days, packs, tiers) {
+  let dp = new Array(target + 1).fill(Infinity);
+  dp[0] = 0;
+
+  for (let d = 0; d < days; d++) {
+    const next = new Array(target + 1).fill(Infinity);
+    for (let q = 0; q <= target; q++) {
+      if (dp[q] === Infinity) continue;
+      for (const t of tiers) {
+        const nq = Math.min(target, q + t.qty);
+        next[nq] = Math.min(next[nq], dp[q] + t.spend);
+      }
+    }
+    dp = next;
+  }
+
+  for (const p of packs) {
+    const copies = maxCountOf(p, days);
+    for (let c = 0; c < copies; c++) {
+      const next = dp.slice();
+      for (let q = 0; q <= target; q++) {
+        if (dp[q] === Infinity) continue;
+        const nq = Math.min(target, q + p.qty);
+        next[nq] = Math.min(next[nq], dp[q] + p.cost);
+      }
+      dp = next;
+    }
+  }
+  return dp[target];
+}
+
+// ---------- 出力 ----------
+function formatResults(results, target, packs, topN, unit) {
+  const lines = [];
+  lines.push(`=== 目標個数: ${target} 個 達成プラン（最安順 TOP ${topN}） ===`);
+  lines.push("");
+  if (results.length === 0) {
+    lines.push("条件を満たすプランが見つかりませんでした。");
+    return lines.join("\n");
+  }
+  results.forEach((r, i) => {
+    const spendsStr = r.dailySpends
+      .map((s, d) => `${d + 1}日目 ${s}${unit}`)
+      .join(" / ");
+    const details = r.directCounts
+      .map((cnt, idx) => (cnt > 0 ? `${packs[idx].name}×${cnt}個` : null))
+      .filter(Boolean);
+    const detailStr = details.length ? details.join(", ") : "なし";
+    lines.push(`【第 ${i + 1} 位】 合計金額: ${r.totalCost} ${unit} (獲得合計: ${r.totalQty} 個)`);
+    lines.push(`  ├─ 毎日購入: 計 ${r.cumCost} ${unit} (獲得: ${r.cumQty} 個)`);
+    lines.push(`  │    └─ 配分: ${spendsStr}`);
+    lines.push(`  └─ 超得パック: ${r.directCost} ${unit} (獲得: ${r.directQty} 個) [${detailStr}]`);
+    lines.push("");
+  });
+  return lines.join("\n");
+}
+
+function readSettings() {
+  return {
+    days: Math.max(1, parseInt(document.getElementById("days").value, 10) || 1),
+    target: parseInt(document.getElementById("target").value, 10) || 0,
+    topN: Math.max(1, parseInt(document.getElementById("topn").value, 10) || 1),
+    unit: document.getElementById("unit").value,
+    packs: readPacks(),
+    tiers: readTiers()
+  };
+}
+
+function run() {
+  const out = document.getElementById("output");
+  const msg = document.getElementById("verifyMsg");
+  msg.textContent = "";
+  try {
+    const s = readSettings();
+    const t0 = performance.now();
+    const results = solveDailyCumCheapest(s.target, s.days, s.packs, s.tiers, s.topN);
+    const ms = Math.round(performance.now() - t0);
+    out.textContent = formatResults(results, s.target, s.packs, s.topN, s.unit)
+      + `\n(計算時間: ${ms} ms)`;
+  } catch (e) {
+    out.textContent = "エラー: " + e.message;
+  }
+}
+
+function verify() {
+  const msg = document.getElementById("verifyMsg");
+  try {
+    const s = readSettings();
+    const results = solveDailyCumCheapest(s.target, s.days, s.packs, s.tiers, 1);
+    const enumMin = results.length ? results[0].totalCost : Infinity;
+    const dpMin = solveByDP(s.target, s.days, s.packs, s.tiers);
+    if (enumMin === dpMin) {
+      msg.className = "ok";
+      msg.textContent = `一致: 全列挙 = DP = ${enumMin} ${s.unit}（最安値を確認）`;
+    } else {
+      msg.className = "ng";
+      msg.textContent = `不一致: 全列挙 = ${enumMin} / DP = ${dpMin}`;
+    }
+  } catch (e) {
+    msg.className = "ng";
+    msg.textContent = "エラー: " + e.message;
+  }
+}
+
+// ---------- 初期化 ----------
+(function init() {
+  loadUserPresets();
+  renderPresetSelect("b:kaifuu");
+  document.getElementById("preset").addEventListener("change", onPresetChange);
+  document.getElementById("saveBtn").addEventListener("click", savePreset);
+  document.getElementById("deleteBtn").addEventListener("click", deletePreset);
+  document.getElementById("exportBtn").addEventListener("click", exportPresets);
+  document.getElementById("copyBtn").addEventListener("click", copyJson);
+  document.getElementById("importBtn").addEventListener("click", importPresets);
+  document.getElementById("addPack").addEventListener("click", () =>
+    addPackRow({ name: "", cost: 0, qty: 0, daily: 1, total: null })
+  );
+  document.getElementById("addTier").addEventListener("click", () => addTierRow(0, 0));
+  document.getElementById("runBtn").addEventListener("click", run);
+  document.getElementById("verifyBtn").addEventListener("click", verify);
+  onPresetChange();
+})();
+</script>
+</body>
+</html>
