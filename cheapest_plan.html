@@ -1,4 +1,3 @@
-<!-- File: 課金プラン最安計算.html -->
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -32,24 +31,47 @@
   th, td { border-bottom: 1px solid #ddd; padding: 4px; text-align: left; font-size: 0.85rem; }
   button { cursor: pointer; border: 1px solid #888; border-radius: 4px; background: #fff; }
   button.primary { background: #2563eb; color: #fff; border-color: #2563eb; }
-  pre {
-    background: #111827;
-    color: #e5e7eb;
-    padding: 12px;
-    border-radius: 6px;
-    overflow-x: auto;
-    white-space: pre-wrap;
-    font-size: 0.85rem;
-  }
   .note { font-size: 0.8rem; color: #555; }
+
+  /* ---------- 結果表示 ---------- */
+  #output { margin-top: 12px; }
+  .placeholder { color: #777; font-size: 0.9rem; }
+  .error { color: #b91c1c; background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; padding: 10px; }
+  .result-title { font-size: 1rem; font-weight: bold; margin: 0 0 4px; }
+  .result-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-top: 12px;
+    background: #fff;
+  }
+  .result-card.top { border: 2px solid #2563eb; background: #f8faff; }
+  .result-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px; }
+  .rank {
+    font-size: 0.8rem; font-weight: bold;
+    background: #e0e7ff; color: #1e40af;
+    border-radius: 999px; padding: 2px 10px;
+  }
+  .result-card.top .rank { background: #2563eb; color: #fff; }
+  .total-cost { font-size: 1.3rem; font-weight: bold; }
+  .total-qty { color: #555; font-size: 0.9rem; }
+  .block { margin-top: 12px; }
+  .block-title { font-size: 0.9rem; font-weight: bold; margin: 0 0 2px; color: #333; }
+  .block-sub { font-size: 0.85rem; color: #555; margin: 0 0 6px; }
+  .result-table { table-layout: fixed; }
+  .result-table th { background: #f3f4f6; font-weight: 600; }
+  .result-table th.num, .result-table td.num { text-align: right; }
+  .result-table tr.sum td { font-weight: bold; border-top: 1px solid #bbb; }
+  .elapsed { font-size: 0.75rem; color: #888; margin-top: 10px; }
 </style>
 </head>
 <body>
 <main>
   <h1>デイリー累計課金 最安プラン計算</h1>
+  <p class="note">内容には誤りがある可能性があります。必ずご自身でご確認ください。</p>
 
   <section>
-    <h2>プリセット</h2>
+    <h2>プリセット(該当イベント時に追加予定)</h2>
     <label>選択
       <select id="preset"></select>
     </label>
@@ -61,36 +83,35 @@
       <label>日数 <input type="number" id="days" min="1" max="10" value="3"></label>
       <label>目標個数 <input type="number" id="target" min="1" value="71"></label>
       <label>表示件数 (TOP N) <input type="number" id="topn" min="1" max="50" value="5"></label>
-      <label>通貨単位 <input type="text" id="unit" value="VIP"></label>
     </div>
   </section>
 
   <section>
-    <h2>直接購入パック</h2>
+    <h2>超得パック</h2>
     <p class="note">日次上限・期間上限は空欄で無制限です。どちらか一方は必ず入力してください。</p>
     <table>
       <thead>
-        <tr><th>名前</th><th>費用</th><th>個数</th><th>日次上限</th><th>期間上限</th><th></th></tr>
+        <tr><th>名前</th><th>VIP</th><th>個数</th><th>日次上限</th><th>期間上限</th><th></th></tr>
       </thead>
       <tbody id="packBody"></tbody>
     </table>
-    <button type="button" id="addPack">パックを追加</button>
+    <button type="button" id="addPack">行を追加</button>
   </section>
 
   <section>
-    <h2>デイリー累計課金ティア</h2>
+    <h2>毎日購入</h2>
     <table>
       <thead>
-        <tr><th>課金額</th><th>獲得個数</th><th></th></tr>
+        <tr><th>VIP</th><th>獲得個数</th><th></th></tr>
       </thead>
       <tbody id="tierBody"></tbody>
     </table>
-    <button type="button" id="addTier">ティアを追加</button>
+    <button type="button" id="addTier">行を追加</button>
   </section>
 
   <section>
     <button type="button" class="primary" id="runBtn">計算する</button>
-    <pre id="output">ここに結果が表示されます。</pre>
+    <div id="output"><p class="placeholder">ここに結果が表示されます。</p></div>
   </section>
 </main>
 
@@ -170,7 +191,6 @@ const PRESETS = [
 
 const MAX_DIRECT_COMBOS = 3000000;
 
-// order 昇順（null は末尾）→ id のアルファベット順
 function comparePresets(a, b) {
   const oa = a.order ?? Infinity;
   const ob = b.order ?? Infinity;
@@ -256,6 +276,12 @@ function readTiers() {
 }
 
 // ---------- プリセット ----------
+function showPlaceholder() {
+  const out = document.getElementById("output");
+  out.innerHTML = "";
+  out.appendChild(el("p", "placeholder", "ここに結果が表示されます。"));
+}
+
 function applyPreset(pr) {
   document.getElementById("days").value = pr.days;
   document.getElementById("target").value = pr.target;
@@ -263,7 +289,7 @@ function applyPreset(pr) {
   document.getElementById("tierBody").innerHTML = "";
   pr.packs.forEach(addPackRow);
   pr.tiers.forEach(([s, q]) => addTierRow(s, q));
-  document.getElementById("output").textContent = "ここに結果が表示されます。";
+  showPlaceholder();
 }
 
 function renderPresetSelect() {
@@ -303,7 +329,11 @@ function buildCumPatterns(tiers, days) {
         cost += tiers[i].spend;
         qty += tiers[i].qty;
       }
-      patterns.push({ cost, qty, spends: pick.map((i) => tiers[i].spend) });
+      patterns.push({
+        cost,
+        qty,
+        picks: pick.map((i) => ({ spend: tiers[i].spend, qty: tiers[i].qty }))
+      });
       return;
     }
     for (let i = start; i < tiers.length; i++) {
@@ -320,7 +350,7 @@ function buildDirectCombos(packs, days) {
   const maxes = packs.map((p) => maxCountOf(p, days));
   const size = maxes.reduce((a, m) => a * (m + 1), 1);
   if (size > MAX_DIRECT_COMBOS) {
-    throw new Error(`直接購入の組み合わせが ${size.toLocaleString()} 通りあり、上限を超えています。`);
+    throw new Error(`超得パックの組み合わせが ${size.toLocaleString()} 通りあり、上限を超えています。`);
   }
   let combos = [{ cost: 0, qty: 0, counts: [] }];
   packs.forEach((p, idx) => {
@@ -356,7 +386,7 @@ function solveDailyCumCheapest(target, days, packs, tiers, topN) {
       best.push({
         totalCost,
         totalQty,
-        dailySpends: cp.spends,
+        dailyPicks: cp.picks,
         directCounts: dc.counts,
         cumCost: cp.cost,
         cumQty: cp.qty,
@@ -371,29 +401,120 @@ function solveDailyCumCheapest(target, days, packs, tiers, topN) {
 }
 
 // ---------- 出力 ----------
-function formatResults(results, target, packs, topN, unit) {
-  const lines = [];
-  lines.push(`=== 目標個数: ${target} 個 達成プラン（最安順 TOP ${topN}） ===`);
-  lines.push("");
-  if (results.length === 0) {
-    lines.push("条件を満たすプランが見つかりませんでした。");
-    return lines.join("\n");
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text !== undefined) e.textContent = text;
+  return e;
+}
+
+// 同じ課金額の日をまとめる（課金額の安い順）
+function groupDaily(picks) {
+  const map = new Map();
+  for (const p of picks) {
+    const key = p.spend + "_" + p.qty;
+    const g = map.get(key) || { spend: p.spend, qty: p.qty, days: 0 };
+    g.days++;
+    map.set(key, g);
   }
-  results.forEach((r, i) => {
-    const spendsStr = r.dailySpends
-      .map((s, d) => `${d + 1}日目 ${s}${unit}`)
-      .join(" / ");
-    const details = r.directCounts
-      .map((cnt, idx) => (cnt > 0 ? `${packs[idx].name}×${cnt}個` : null))
-      .filter(Boolean);
-    const detailStr = details.length ? details.join(", ") : "なし";
-    lines.push(`【第 ${i + 1} 位】 合計金額: ${r.totalCost} ${unit} (獲得合計: ${r.totalQty} 個)`);
-    lines.push(`  ├─ 毎日購入: 計 ${r.cumCost} ${unit} (獲得: ${r.cumQty} 個)`);
-    lines.push(`  │    └─ 配分: ${spendsStr}`);
-    lines.push(`  └─ 超得パック: ${r.directCost} ${unit} (獲得: ${r.directQty} 個) [${detailStr}]`);
-    lines.push("");
+  return Array.from(map.values()).sort((a, b) => a.spend - b.spend || a.qty - b.qty);
+}
+
+function spendLabel(spend, unit) {
+  return spend === 0 ? "購入なし" : `${spend}${unit}`;
+}
+
+// 毎日購入と超得パックの表で列幅をそろえる（5列）
+const RESULT_COL_WIDTHS = ["24%", "19%", "19%", "19%", "19%"];
+
+// headers: [[見出し, 数値列か]], rows: [[値...]], sumRow: 合計行（任意）
+function makeTable(headers, rows, sumRow) {
+  const table = el("table", "result-table");
+  const colgroup = el("colgroup");
+  RESULT_COL_WIDTHS.forEach((w) => {
+    const col = el("col");
+    col.style.width = w;
+    colgroup.appendChild(col);
   });
-  return lines.join("\n");
+  table.appendChild(colgroup);
+  const thead = el("thead");
+  const htr = el("tr");
+  headers.forEach(([h, isNum]) => htr.appendChild(el("th", isNum ? "num" : "", h)));
+  thead.appendChild(htr);
+  table.appendChild(thead);
+  const tbody = el("tbody");
+  const addRow = (vals, cls) => {
+    const tr = el("tr", cls || "");
+    vals.forEach((v, i) => tr.appendChild(el("td", headers[i][1] ? "num" : "", String(v))));
+    tbody.appendChild(tr);
+  };
+  rows.forEach((r) => addRow(r));
+  if (sumRow) addRow(sumRow, "sum");
+  table.appendChild(tbody);
+  return table;
+}
+
+function renderResults(container, results, target, packs, topN, unit, ms) {
+  container.innerHTML = "";
+  container.appendChild(el("p", "result-title", `目標 ${target} 個を達成するプラン（安い順 TOP ${topN}）`));
+
+  if (results.length === 0) {
+    container.appendChild(el("p", "placeholder", "条件を満たすプランが見つかりませんでした。"));
+    container.appendChild(el("p", "elapsed", `計算時間: ${ms} ms`));
+    return;
+  }
+
+  results.forEach((r, i) => {
+    const card = el("div", "result-card" + (i === 0 ? " top" : ""));
+
+    const head = el("div", "result-head");
+    head.appendChild(el("span", "rank", `${i + 1}位`));
+    head.appendChild(el("span", "total-cost", `${r.totalCost} ${unit}`));
+    head.appendChild(el("span", "total-qty", `獲得 ${r.totalQty} 個`));
+    card.appendChild(head);
+
+    // 毎日購入
+    const groups = groupDaily(r.dailyPicks);
+    const daily = el("div", "block");
+    daily.appendChild(el("p", "block-title", `毎日購入：${r.cumCost} ${unit}（獲得 ${r.cumQty} 個）`));
+    daily.appendChild(el("p", "block-sub",
+      groups.map((g) => `${spendLabel(g.spend, unit)} ×${g.days}日`).join(" + ")));
+    daily.appendChild(makeTable(
+      [["1日の課金額", false], ["費用", true], ["1日あたり獲得", true], ["日数", true], ["小計", true]],
+      groups.map((g) => [
+        spendLabel(g.spend, unit),
+        `${g.spend * g.days} ${unit}`,
+        `${g.qty} 個`,
+        `${g.days} 日`,
+        `${g.qty * g.days} 個`
+      ]),
+      ["合計", `${r.cumCost} ${unit}`, "", `${r.dailyPicks.length} 日`, `${r.cumQty} 個`]
+    ));
+    card.appendChild(daily);
+
+    // 超得パック（費用の安い順）
+    const direct = el("div", "block");
+    direct.appendChild(el("p", "block-title", `超得パック：${r.directCost} ${unit}（獲得 ${r.directQty} 個）`));
+    const rows = r.directCounts
+      .map((cnt, idx) => (cnt > 0 ? { p: packs[idx], cnt } : null))
+      .filter(Boolean)
+      .sort((a, b) => a.p.cost - b.p.cost || a.p.qty - b.p.qty)
+      .map(({ p, cnt }) => [p.name, `${p.cost * cnt} ${unit}`, `${p.qty} 個`, `${cnt} 回`, `${p.qty * cnt} 個`]);
+    if (rows.length) {
+      direct.appendChild(makeTable(
+        [["パック", false], ["費用", true], ["1つあたり獲得", true], ["購入数", true], ["獲得", true]],
+        rows,
+        ["合計", `${r.directCost} ${unit}`, "", "", `${r.directQty} 個`]
+      ));
+    } else {
+      direct.appendChild(el("p", "block-sub", "購入なし"));
+    }
+    card.appendChild(direct);
+
+    container.appendChild(card);
+  });
+
+  container.appendChild(el("p", "elapsed", `計算時間: ${ms} ms`));
 }
 
 function run() {
@@ -402,16 +523,16 @@ function run() {
     const days = Math.max(1, parseInt(document.getElementById("days").value, 10) || 1);
     const target = parseInt(document.getElementById("target").value, 10) || 0;
     const topN = Math.max(1, parseInt(document.getElementById("topn").value, 10) || 1);
-    const unit = document.getElementById("unit").value;
+    const unit = "VIP";
     const packs = readPacks();
     const tiers = readTiers();
     const t0 = performance.now();
     const results = solveDailyCumCheapest(target, days, packs, tiers, topN);
     const ms = Math.round(performance.now() - t0);
-    out.textContent = formatResults(results, target, packs, topN, unit)
-      + `\n(計算時間: ${ms} ms)`;
+    renderResults(out, results, target, packs, topN, unit, ms);
   } catch (e) {
-    out.textContent = "エラー: " + e.message;
+    out.innerHTML = "";
+    out.appendChild(el("p", "error", "エラー: " + e.message));
   }
 }
 
