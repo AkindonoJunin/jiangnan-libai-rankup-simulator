@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>修仙・歴練 戦闘シミュレーター (A/B比較対応版)</title>
+<title>山河の饗宴 戦闘シミュレーター (A/B比較対応版)</title>
 <style>
   :root {
     --bg-color: #0f1218;
@@ -285,7 +285,7 @@
 
 <div class="container">
   <header>
-    <h1>修仙・歴練 戦闘シミュレーター</h1>
+    <h1>山河の饗宴 戦闘シミュレーター</h1>
     <div class="subtitle">ステータス2構成並行比較 (A/Bテスト) ＆ 階層・ステージ自動更新対応</div>
   </header>
 
@@ -317,12 +317,12 @@
         <div class="form-group">
           <label>ステージ (6ステージ)</label>
           <select id="stageNameSelect" onchange="onFloorOrStageChange()">
-            <option value="廬山の滝">廬山の滝</option>
-            <option value="蜀の道">蜀の道</option>
-            <option value="広寒天宮">広寒天宮</option>
-            <option value="蓬莱仙島">蓬莱仙島</option>
-            <option value="天姥山">天姥山</option>
-            <option value="崑崙">崑崙</option>
+            <option value="衡山">衡山</option>
+            <option value="華山">華山</option>
+            <option value="恒山">恒山</option>
+            <option value="嵩山">嵩山</option>
+            <option value="泰山">泰山</option>
+            <option value="京城">京城</option>
           </select>
         </div>
         <div class="form-group span-mobile">
@@ -534,7 +534,7 @@ let enemiesData = [];
 // Initialize
 function initStageSelectors() {
   document.getElementById("floorSelect").value = "1";
-  document.getElementById("stageNameSelect").value = "廬山の滝";
+  document.getElementById("stageNameSelect").value = "衡山";
   onFloorOrStageChange();
 }
 
