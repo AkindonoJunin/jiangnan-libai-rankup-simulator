@@ -183,6 +183,15 @@
             grid-template-columns: 84px minmax(0, 1fr);
         }
 
+        .date-fields.with-now {
+            grid-template-columns: 84px minmax(0, 1fr) auto;
+        }
+
+        .now-button {
+            padding: 8px 10px;
+            white-space: nowrap;
+        }
+
         .heading,
         .actions {
             display: flex;
@@ -1854,9 +1863,19 @@
                 return label;
             }
 
-            function dateField(object, dayKey, timeKey, title) {
+            function dateField(object, dayKey, timeKey, title, options = {}) {
                 const fieldset = element("fieldset");
-                const grid = element("div", null, "grid date-fields");
+                const grid = element(
+                    "div",
+                    null,
+                    "grid date-fields" + (options.nowAction ? " with-now" : "")
+                );
+
+                const timeInput = control(object, timeKey, {
+                    type: "time",
+                    step: 1,
+                    "aria-label": `${title}の時刻`
+                });
 
                 grid.append(
                     control(
@@ -1865,17 +1884,28 @@
                         { "aria-label": `${title}の日` },
                         DAY_OPTIONS
                     ),
-                    control(object, timeKey, {
-                        type: "time",
-                        step: 1,
-                        "aria-label": `${title}の時刻`
-                    })
+                    timeInput
                 );
+
+                if (options.nowAction) {
+                    const nowButton = actionButton(
+                        "現在",
+                        options.nowAction,
+                        "now-button"
+                    );
+                    nowButton.setAttribute(
+                        "aria-label",
+                        `${title}の時刻に現在時刻を入力（日は変更しません）`
+                    );
+                    grid.append(nowButton);
+                }
 
                 fieldset.append(
                     element("legend", title, "field-label"),
                     grid
                 );
+
+                fieldset.timeInput = timeInput;
 
                 return fieldset;
             }
@@ -1940,9 +1970,18 @@
                     )
                 );
 
+                const resumeDate = dateField(
+                    config.resume,
+                    "day",
+                    "time",
+                    "再開日時",
+                    { nowAction: "resume-now" }
+                );
+                ui.resumeTime = resumeDate.timeInput;
+
                 ui.resume = element("div", null, "fields");
                 ui.resume.append(
-                    dateField(config.resume, "day", "time", "再開日時"),
+                    resumeDate,
                     labelled(
                         "現在階級",
                         control(
@@ -2808,6 +2847,20 @@
                             index,
                             !nodes.row.classList.contains("is-expanded")
                         );
+                        break;
+                    }
+
+                    case "resume-now": {
+                        const now = new Date();
+                        const value = (
+                            `${pad2(now.getHours())}:` +
+                            `${pad2(now.getMinutes())}:` +
+                            `${pad2(now.getSeconds())}`
+                        );
+
+                        config.resume.time = value;
+                        ui.resumeTime.value = value;
+                        invalidate();
                         break;
                     }
 
