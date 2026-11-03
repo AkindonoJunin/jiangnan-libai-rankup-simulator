@@ -8,117 +8,191 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none';">
 <title>江南/李白等級昇級シミュレーター</title>
 <style>
-:root {
-  color-scheme: dark;
-  --bg: #0b1220; --panel: #111c2e; --border: #304158; --text: #edf3fb;
-  --muted: #a9b8cc; --green: #6ee7b7; --cyan: #7dd3fc;
-}
-* { box-sizing: border-box; }
-[hidden] { display: none !important; }
-body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; line-height: 1.6; }
-button, input, select { min-height: 44px; border: 1px solid var(--border); border-radius: 8px; color: var(--text); font: inherit; }
-button { padding: 8px 12px; background: #20314a; cursor: pointer; touch-action: manipulation; }
-button:hover:not(:disabled) { background: #2b4160; }
-input, select { width: 100%; min-width: 0; padding: 8px; background: #091321; }
-:disabled { opacity: 0.6; cursor: not-allowed; }
-:focus-visible { outline: 3px solid var(--cyan); outline-offset: 3px; }
-h1, h2, p { margin-top: 0; }
-h2 { font-size: 17px; }
-fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
-label { display: block; }
-summary { padding: 8px 0; font-weight: 700; cursor: pointer; }
-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 20px; border-bottom: 1px solid var(--border); background: var(--panel); }
-header h1 { margin: 0; font-size: 19px; }
-header p { margin: 2px 0 0; color: var(--muted); font-size: 12px; }
-.layout { display: grid; grid-template-columns: 330px minmax(0, 1fr); align-items: start; gap: 18px; max-width: 1800px; margin: auto; padding: 18px; }
-#settings-panel { position: sticky; top: 20px; max-height: calc(100vh - 40px); max-height: calc(100dvh - 40px); overflow-y: auto; scrollbar-gutter: stable; }
-main { min-width: 0; }
-.panel, .metric, .notice { margin-bottom: 14px; padding: 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--panel); }
-.fields { display: grid; gap: 12px; }
-.grid, .metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-.date-fields { grid-template-columns: 84px minmax(0, 1fr); }
-.date-fields.with-now { grid-template-columns: 84px minmax(0, 1fr) auto; }
-.now-button { padding: 8px 10px; white-space: nowrap; }
-.heading, .actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
-.heading { justify-content: space-between; margin-bottom: 12px; }
-.heading h2 { margin: 0; }
-.field-label, .muted, .sub, .cell-title { color: var(--muted); font-size: 13px; }
-.field-label { display: block; margin-bottom: 5px; }
-.sub { display: block; margin-top: 5px; }
-.offline-period { margin-top: 12px; padding: 12px; border: 1px solid var(--border); border-radius: 8px; }
-.buff-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; max-height: 310px; overflow-y: auto; margin-top: 12px; padding: 3px; }
-.buff-grid .field-label { font-size: 12px; }
-.danger { color: #fda4af; }
-.full-width { width: 100%; }
-.metric-value, .arrival { color: var(--green); font-weight: 700; font-variant-numeric: tabular-nums; }
-.metric-value { overflow-wrap: anywhere; font-size: 20px; }
-.arrival { display: block; margin-top: 6px; }
-.error { border-color: #be5266; background: #361b29; color: #ffe4e9; }
-.warning { border-color: #9a7837; background: #302718; color: #fde4af; }
-.table-scroll { overflow-x: auto; margin-bottom: 14px; border: 1px solid var(--border); border-radius: 12px; }
-table { width: 100%; min-width: 780px; border-collapse: collapse; background: var(--panel); font-size: 14px; }
-th, td { padding: 12px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
-thead { background: #1b2a40; color: var(--muted); }
-tbody th { min-width: 175px; font-weight: 400; }
-tbody tr:last-child > * { border-bottom: 0; }
-.target-row { background: #14312e; }
-.grade-name { display: block; margin: 5px 0; font-weight: 700; }
-.item-cell { min-width: 260px; }
-.item-summary { display: block; margin-top: 4px; font-size: 12px; color: var(--muted); }
-.stepper { display: grid; grid-template-columns: 44px minmax(55px, 1fr) 44px; gap: 5px; }
-.stepper input { padding: 6px 2px; text-align: center; }
-.cell-title, .row-details-toggle { display: none; }
-.arrival-layout, .arrival-info { min-width: 0; }
-.event-log { max-height: 420px; overflow-y: auto; margin: 0 0 12px; padding: 0; list-style: none; }
-.event-log li { padding: 10px 0; border-top: 1px solid var(--border); }
-.event-log time { display: block; color: var(--cyan); font-size: 13px; }
-.boot { margin: 24px; }
-.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-@media (max-width: 980px) {
-  header { padding: 10px 12px; }
-  header h1 { font-size: 16px; }
-  .layout { display: block; padding: 12px; }
-  #settings-panel { position: static; display: block; max-height: none; overflow: visible; margin-bottom: 18px; }
-  input, select { font-size: 16px; }
-  .table-scroll { overflow: visible; border: 0; }
-  table, tbody { display: block; min-width: 0; background: transparent; }
-  thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
-  tbody tr { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); align-items: start; column-gap: 8px; row-gap: 0; margin-bottom: 8px; padding: 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--panel); }
-  tbody tr.target-row { background: #14312e; }
-  tbody th, tbody td { display: block; min-width: 0; padding: 0; border: 0; }
-  tbody th.grade-cell { grid-column: 1; grid-row: 1; }
-  .grade-cell .grade-name { margin: 0 0 4px; font-size: 13px; line-height: 1.45; overflow-wrap: anywhere; }
-  .grade-cell .grade-part { display: block; }
-  .grade-cell .grade-separator { display: none; }
-  .grade-cell .sub { margin-top: 3px; font-size: 11px; }
-  tbody td.arrival-cell { grid-column: 2; grid-row: 1; }
-  .arrival-layout { display: grid; grid-template-columns: minmax(0, 1fr) 44px; align-items: start; gap: 6px; }
-  .arrival-info { text-align: right; }
-  .cell-title { display: block; margin-bottom: 6px; }
-  .arrival-info .cell-title { margin-bottom: 2px; font-size: 11px; line-height: 1.4; }
-  .arrival-info .arrival { margin-top: 0; font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
-  .arrival-info .sub { margin-top: 3px; font-size: 10px; line-height: 1.4; overflow-wrap: anywhere; }
-  .row-details-toggle { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; width: 44px; min-width: 44px; min-height: 44px; padding: 4px; font-size: 11px; font-weight: 700; line-height: 1.2; white-space: nowrap; }
-  .row-details-toggle[aria-expanded="true"] { border-color: var(--cyan); background: #243d57; }
-  .row-details-icon { display: block; color: var(--cyan); font-size: 12px; line-height: 1; transition: transform 0.15s ease; }
-  .row-details-toggle[aria-expanded="true"] .row-details-icon { transform: rotate(180deg); }
-  tbody td.basic-cell, tbody td.item-cell { display: none; }
-  tbody tr.is-expanded > td.basic-cell { display: block; grid-column: 1 / -1; grid-row: 2; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
-  tbody tr.is-expanded > td.item-cell { display: block; grid-column: 1 / -1; grid-row: 3; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
-  .basic-cell .cell-title, .item-cell .cell-title { font-weight: 700; }
-  .item-cell .item-summary { margin-top: 8px; line-height: 1.6; }
-}
-@media (max-width: 540px) {
-  .metrics { grid-template-columns: 1fr; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .row-details-icon { transition: none; }
-}
+  :root {
+    color-scheme: dark;
+    --bg: #0b1220;
+    --panel: #111c2e;
+    --border: #304158;
+    --text: #edf3fb;
+    --muted: #a9b8cc;
+    --green: #6ee7b7;
+    --cyan: #7dd3fc;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; line-height: 1.6; }
+  button, input, select { min-height: 44px; border: 1px solid var(--border); border-radius: 8px; color: var(--text); font: inherit; }
+  button { padding: 8px 12px; background: #20314a; cursor: pointer; touch-action: manipulation; }
+  button:hover:not(:disabled) { background: #2b4160; }
+  input, select { width: 100%; min-width: 0; padding: 8px; background: #091321; }
+  :disabled { opacity: 0.6; cursor: not-allowed; }
+  :focus-visible { outline: 3px solid var(--cyan); outline-offset: 3px; }
+  h1, h2, p { margin-top: 0; }
+  h2 { font-size: 17px; }
+  fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
+  label { display: block; }
+  summary { padding: 8px 0; font-weight: 700; cursor: pointer; }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+  }
+  header h1 { margin: 0; font-size: 19px; }
+  header p { margin: 2px 0 0; color: var(--muted); font-size: 12px; }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 330px minmax(0, 1fr);
+    align-items: start;
+    gap: 18px;
+    max-width: 1800px;
+    margin: auto;
+    padding: 18px;
+  }
+  #settings-panel {
+    position: sticky;
+    top: 20px;
+    max-height: calc(100vh - 40px);
+    max-height: calc(100dvh - 40px);
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+  }
+  main { min-width: 0; }
+  .panel, .metric, .notice { margin-bottom: 14px; padding: 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--panel); }
+  .fields { display: grid; gap: 12px; }
+  .grid, .metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .date-fields { grid-template-columns: 84px minmax(0, 1fr); }
+  .date-fields.with-now { grid-template-columns: 84px minmax(0, 1fr) auto; }
+  .now-button { padding: 8px 10px; white-space: nowrap; }
+  .heading, .actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+  .heading { justify-content: space-between; margin-bottom: 12px; }
+  .heading h2 { margin: 0; }
+  .field-label, .muted, .sub, .cell-title { color: var(--muted); font-size: 13px; }
+  .field-label { display: block; margin-bottom: 5px; }
+  .sub { display: block; margin-top: 5px; }
+  .offline-period { margin-top: 12px; padding: 12px; border: 1px solid var(--border); border-radius: 8px; }
+  .buff-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    max-height: 310px;
+    overflow-y: auto;
+    margin-top: 12px;
+    padding: 3px;
+  }
+  .buff-grid .field-label { font-size: 12px; }
+  .danger { color: #fda4af; }
+  .full-width { width: 100%; }
+  .metric-value, .arrival { color: var(--green); font-weight: 700; font-variant-numeric: tabular-nums; }
+  .metric-value { overflow-wrap: anywhere; font-size: 20px; }
+  .arrival { display: block; margin-top: 6px; }
+  .error { border-color: #be5266; background: #361b29; color: #ffe4e9; }
+  .warning { border-color: #9a7837; background: #302718; color: #fde4af; }
+
+  .table-scroll { overflow-x: auto; margin-bottom: 14px; border: 1px solid var(--border); border-radius: 12px; }
+  table { width: 100%; min-width: 780px; border-collapse: collapse; background: var(--panel); font-size: 14px; }
+  th, td { padding: 12px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
+  thead { background: #1b2a40; color: var(--muted); }
+  tbody th { min-width: 175px; font-weight: 400; }
+  tbody tr:last-child > * { border-bottom: 0; }
+  .target-row { background: #14312e; }
+  .grade-name { display: block; margin: 5px 0; font-weight: 700; }
+  .item-cell { min-width: 260px; }
+  .item-summary { display: block; margin-top: 4px; font-size: 12px; color: var(--muted); }
+  .stepper { display: grid; grid-template-columns: 44px minmax(55px, 1fr) 44px; gap: 5px; }
+  .stepper input { padding: 6px 2px; text-align: center; }
+  .cell-title, .row-details-toggle { display: none; }
+  .arrival-layout, .arrival-info { min-width: 0; }
+
+  .event-log { max-height: 420px; overflow-y: auto; margin: 0 0 12px; padding: 0; list-style: none; }
+  .event-log li { padding: 10px 0; border-top: 1px solid var(--border); }
+  .event-log time { display: block; color: var(--cyan); font-size: 13px; }
+  .boot { margin: 24px; }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+  @media (max-width: 980px) {
+    header { padding: 10px 12px; }
+    header h1 { font-size: 16px; }
+    .layout { display: block; padding: 12px; }
+    #settings-panel { position: static; display: block; max-height: none; overflow: visible; margin-bottom: 18px; }
+    input, select { font-size: 16px; }
+    .table-scroll { overflow: visible; border: 0; }
+    table, tbody { display: block; min-width: 0; background: transparent; }
+    thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+    tbody tr {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr);
+      align-items: start;
+      column-gap: 8px;
+      row-gap: 0;
+      margin-bottom: 8px;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--panel);
+    }
+    tbody tr.target-row { background: #14312e; }
+    tbody th, tbody td { display: block; min-width: 0; padding: 0; border: 0; }
+    tbody th.grade-cell { grid-column: 1; grid-row: 1; }
+    .grade-cell .grade-name { margin: 0 0 4px; font-size: 13px; line-height: 1.45; overflow-wrap: anywhere; }
+    .grade-cell .grade-part { display: block; }
+    .grade-cell .grade-separator { display: none; }
+    .grade-cell .sub { margin-top: 3px; font-size: 11px; }
+    tbody td.arrival-cell { grid-column: 2; grid-row: 1; }
+    .arrival-layout { display: grid; grid-template-columns: minmax(0, 1fr) 44px; align-items: start; gap: 6px; }
+    .arrival-info { text-align: right; }
+    .cell-title { display: block; margin-bottom: 6px; }
+    .arrival-info .cell-title { margin-bottom: 2px; font-size: 11px; line-height: 1.4; }
+    .arrival-info .arrival { margin-top: 0; font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
+    .arrival-info .sub { margin-top: 3px; font-size: 10px; line-height: 1.4; overflow-wrap: anywhere; }
+    .row-details-toggle {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1px;
+      width: 44px;
+      min-width: 44px;
+      min-height: 44px;
+      padding: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1.2;
+      white-space: nowrap;
+    }
+    .row-details-toggle[aria-expanded="true"] { border-color: var(--cyan); background: #243d57; }
+    .row-details-icon { display: block; color: var(--cyan); font-size: 12px; line-height: 1; transition: transform 0.15s ease; }
+    .row-details-toggle[aria-expanded="true"] .row-details-icon { transform: rotate(180deg); }
+    tbody td.basic-cell, tbody td.item-cell { display: none; }
+    tbody tr.is-expanded > td.basic-cell {
+      display: block; grid-column: 1 / -1; grid-row: 2;
+      margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);
+    }
+    tbody tr.is-expanded > td.item-cell {
+      display: block; grid-column: 1 / -1; grid-row: 3;
+      margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);
+    }
+    .basic-cell .cell-title, .item-cell .cell-title { font-weight: 700; }
+    .item-cell .item-summary { margin-top: 8px; line-height: 1.6; }
+  }
+  @media (max-width: 540px) {
+    .metrics { grid-template-columns: 1fr; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .row-details-icon { transition: none; }
+  }
 </style>
 </head>
 <body>
+
 <p id="boot-status" class="panel boot" role="status">アプリを準備しています。</p>
 <noscript><p class="panel boot">このシミュレーターにはJavaScriptが必要です。</p></noscript>
+
 <div id="app" hidden>
   <header>
     <div>
@@ -126,16 +200,20 @@ tbody tr:last-child > * { border-bottom: 0; }
       <p>Made by Akindonojunin</p>
     </div>
   </header>
+
   <div class="layout">
     <aside id="settings-panel" aria-label="シミュレーション設定"><div id="settings-content"></div></aside>
+
     <main id="results">
       <div class="heading">
         <h2 id="result-title">シミュレーション結果</h2>
         <button type="button" data-action="recalculate">再計算</button>
       </div>
+
       <p id="status" class="muted" role="status" aria-live="polite" aria-atomic="true"></p>
       <div id="errors" class="notice error" role="alert" hidden></div>
       <div id="reverse-warning" class="notice warning" hidden></div>
+
       <section class="metrics" aria-label="計算結果の概要">
         <div class="metric">
           <div id="grade-label" class="field-label">到達階級</div>
@@ -148,6 +226,7 @@ tbody tr:last-child > * { border-bottom: 0; }
           <div id="items-detail" class="sub">—</div>
         </div>
       </section>
+
       <div class="table-scroll">
         <table>
           <caption class="sr-only">階級ごとの到達予想とアイテム設定</caption>
@@ -162,11 +241,13 @@ tbody tr:last-child > * { border-bottom: 0; }
           <tbody id="grade-rows"></tbody>
         </table>
       </div>
+
       <details id="log-details" class="panel" hidden>
         <summary id="log-summary">操作ログ</summary>
         <ol id="event-log" class="event-log"></ol>
         <button id="more-logs" type="button" data-action="more-logs" hidden>続きを表示</button>
       </details>
+
       <details class="panel">
         <summary>計算ルール・制約</summary>
         <ul>
@@ -177,6 +258,7 @@ tbody tr:last-child > * { border-bottom: 0; }
     </main>
   </div>
 </div>
+
 <script>
 (() => {
   "use strict";
@@ -203,57 +285,28 @@ tbody tr:last-child > * { border-bottom: 0; }
   const BUFF_OPTIONS = Object.freeze([3, 10, 20, 30]);
   const CANCELLED = Symbol("cancelled");
 
+  // [name, speed, req]
   const GRADES = Object.freeze([
-    ["良民三等/錬気期一段", 100, 41000],
-    ["良民二等/錬気期二段", 200, 288200],
-    ["良民一等/錬気期三段", 300, 497700],
-    ["文人三等/築基期一段", 400, 747600],
-    ["文人二等/築基期二段", 500, 1058000],
-    ["文人一等/築基期三段", 600, 1414800],
-    ["才女三等/結丹期一段", 700, 1874600],
-    ["才女二等/結丹期二段", 800, 2364800],
-    ["才女一等/結丹期三段", 900, 2980800],
-    ["学士六等/元嬰期一段", 1000, 3667000],
-    ["学士五等/元嬰期二段", 1100, 4466000],
-    ["学士四等/元嬰期三段", 1200, 5341200],
-    ["学士三等/元嬰期四段", 1300, 6346600],
-    ["学士二等/元嬰期五段", 1400, 7491400],
-    ["学士一等/元嬰期六段", 1500, 8730000],
-    ["翰林六等/化神期一段", 1600, 10123200],
-    ["翰林五等/化神期二段", 1700, 11685800],
-    ["翰林四等/化神期三段", 1800, 13356000],
-    ["翰林三等/化神期四段", 1900, 15209500],
-    ["翰林二等/化神期五段", 2000, 17180000],
-    ["翰林一等/化神期六段", 2100, 19349400],
-    ["博雅六等/錬虚期一段", 2200, 16192000],
-    ["博雅五等/錬虚期二段", 2300, 18308000],
-    ["博雅四等/錬虚期三段", 2400, 26976000],
-    ["博雅三等/錬虚期四段", 2500, 63300000],
-    ["博雅二等/錬虚期五段", 2600, 68432000],
-    ["博雅一等/錬虚期六段", 2700, 73548000],
-    ["名仕九等/合体期一段", 2800, 79072000],
-    ["名仕八等/合体期二段", 2900, 84680000],
-    ["名仕七等/合体期三段", 3000, 90360000],
-    ["名仕六等/合体期四段", 3100, 96472000],
-    ["名仕五等/合体期五段", 3200, 102656000],
-    ["名仕四等/合体期六段", 3300, 108900000],
-    ["名仕三等/合体期七段", 3400, 115600000],
-    ["名仕二等/合体期八段", 3500, 122360000],
-    ["名仕一等/合体期九段", 3600, 129168000],
-    ["聖人九等/大乗期一段", 3700, 136456000],
-    ["聖人八等/大乗期二段", 3800, 143792000],
-    ["聖人七等/大乗期三段", 3900, 151164000],
-    ["聖人六等/大乗期四段", 4000, 159040000],
-    ["聖人五等/大乗期五段", 4100, 166952000],
-    ["聖人四等/大乗期六段", 4200, 174888000],
-    ["聖人三等/大乗期七段", 4300, 183352000],
-    ["聖人二等/大乗期八段", 4400, 191840000],
-    ["聖人一等/大乗期九段", 4500, 200520000]
+    ["良民三等/錬気期一段", 100, 41000], ["良民二等/錬気期二段", 200, 288200], ["良民一等/錬気期三段", 300, 497700],
+    ["文人三等/築基期一段", 400, 747600], ["文人二等/築基期二段", 500, 1058000], ["文人一等/築基期三段", 600, 1414800],
+    ["才女三等/結丹期一段", 700, 1874600], ["才女二等/結丹期二段", 800, 2364800], ["才女一等/結丹期三段", 900, 2980800],
+    ["学士六等/元嬰期一段", 1000, 3667000], ["学士五等/元嬰期二段", 1100, 4466000], ["学士四等/元嬰期三段", 1200, 5341200],
+    ["学士三等/元嬰期四段", 1300, 6346600], ["学士二等/元嬰期五段", 1400, 7491400], ["学士一等/元嬰期六段", 1500, 8730000],
+    ["翰林六等/化神期一段", 1600, 10123200], ["翰林五等/化神期二段", 1700, 11685800], ["翰林四等/化神期三段", 1800, 13356000],
+    ["翰林三等/化神期四段", 1900, 15209500], ["翰林二等/化神期五段", 2000, 17180000], ["翰林一等/化神期六段", 2100, 19349400],
+    ["博雅六等/錬虚期一段", 2200, 16192000], ["博雅五等/錬虚期二段", 2300, 18308000], ["博雅四等/錬虚期三段", 2400, 26976000],
+    ["博雅三等/錬虚期四段", 2500, 63300000], ["博雅二等/錬虚期五段", 2600, 68432000], ["博雅一等/錬虚期六段", 2700, 73548000],
+    ["名仕九等/合体期一段", 2800, 79072000], ["名仕八等/合体期二段", 2900, 84680000], ["名仕七等/合体期三段", 3000, 90360000],
+    ["名仕六等/合体期四段", 3100, 96472000], ["名仕五等/合体期五段", 3200, 102656000], ["名仕四等/合体期六段", 3300, 108900000],
+    ["名仕三等/合体期七段", 3400, 115600000], ["名仕二等/合体期八段", 3500, 122360000], ["名仕一等/合体期九段", 3600, 129168000],
+    ["聖人九等/大乗期一段", 3700, 136456000], ["聖人八等/大乗期二段", 3800, 143792000], ["聖人七等/大乗期三段", 3900, 151164000],
+    ["聖人六等/大乗期四段", 4000, 159040000], ["聖人五等/大乗期五段", 4100, 166952000], ["聖人四等/大乗期六段", 4200, 174888000],
+    ["聖人三等/大乗期七段", 4300, 183352000], ["聖人二等/大乗期八段", 4400, 191840000], ["聖人一等/大乗期九段", 4500, 200520000]
   ].map(([name, speed, req], id) => Object.freeze({ id, name, speed, req })));
 
   const LAST_GRADE = GRADES.length - 1;
-  const GRADE_OPTIONS = GRADES.map((grade) => [grade.id, grade.name]);
-  const BUFF_SELECT_OPTIONS = BUFF_OPTIONS.map((value) => [value, `${value}%`]);
+  const GRADE_OPTIONS = GRADES.map(g => [g.id, g.name]);
+  const BUFF_SELECT_OPTIONS = BUFF_OPTIONS.map(v => [v, `${v}%`]);
   const DAY_OPTIONS = [[1, "1日目"], [2, "2日目"], [3, "3日目"]];
 
   const formatter = new Intl.NumberFormat("ja-JP", { maximumFractionDigits: 2 });
@@ -285,6 +338,7 @@ tbody tr:last-child > * { border-bottom: 0; }
     };
   }
 
+  // --- FORMAT & PARSE ---
   function formatNumber(value) {
     return Number.isFinite(value) ? formatter.format(value) : "—";
   }
@@ -323,15 +377,19 @@ tbody tr:last-child > * { border-bottom: 0; }
   function parseTime(day, text) {
     const numericDay = Number(day);
     if (!Number.isInteger(numericDay) || numericDay < 1 || numericDay > 3 || typeof text !== "string") return NaN;
+
     const match = /^(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(text);
     if (!match) return NaN;
+
     const hours = Number(match[1]);
     const minutes = Number(match[2]);
     const seconds = Number(match[3] ?? 0);
     if (hours > 23 || minutes > 59 || seconds > 59) return NaN;
+
     return (numericDay - 1) * 86400 + hours * 3600 + minutes * 60 + seconds - START_HOUR * 3600;
   }
 
+  // --- VALIDATION ---
   function validateConfig(source) {
     const errors = [];
 
@@ -384,7 +442,6 @@ tbody tr:last-child > * { border-bottom: 0; }
 
       const exp = Number(resume.exp);
       const scaled = Math.round(exp * EXP_SCALE);
-
       if (
         missing(resume.exp) || !Number.isFinite(exp) || exp < 0 || exp > MAX_INITIAL_EXP ||
         !Number.isSafeInteger(scaled) || scaled / EXP_SCALE !== exp
@@ -411,11 +468,9 @@ tbody tr:last-child > * { border-bottom: 0; }
       if (!BUFF_OPTIONS.includes(number)) errors.push(`${hourLabel(index)}のバフ率が不正です。`);
       return number;
     });
-
     if (buffs[0] !== 3) errors.push("最初の1時間のバフは3%固定です。");
 
     const periods = [];
-
     source.offlinePeriods.forEach((period, index) => {
       const start = readTime(period.startDay, period.startTime, `オフライン期間${index + 1}の開始`);
       const end = readTime(period.endDay, period.endTime, `オフライン期間${index + 1}の終了`);
@@ -448,9 +503,7 @@ tbody tr:last-child > * { border-bottom: 0; }
     if (errors.length > 0) return { errors, input: null };
 
     periods.sort((a, b) => a.start - b.start);
-
     const merged = [];
-
     for (const period of periods) {
       const previous = merged[merged.length - 1];
       if (!previous || period.start > previous.end) {
@@ -461,11 +514,9 @@ tbody tr:last-child > * { border-bottom: 0; }
     }
 
     const boundaries = new Set([endTime]);
-
     function addBoundary(time) {
       if (time > startTime && time <= endTime) boundaries.add(time);
     }
-
     for (const period of merged) {
       addBoundary(period.start);
       addBoundary(period.end);
@@ -476,14 +527,22 @@ tbody tr:last-child > * { border-bottom: 0; }
       input: {
         mode: source.calculationMode,
         startMode: source.startMode,
-        startTime, startGrade, startExpScaled, startStamina, recoveryRemaining,
-        goalGrade, endTime, buffs, settings,
+        startTime,
+        startGrade,
+        startExpScaled,
+        startStamina,
+        recoveryRemaining,
+        goalGrade,
+        endTime,
+        buffs,
+        settings,
         offlinePeriods: merged,
         boundaries: [...boundaries].sort((a, b) => a - b)
       }
     };
   }
 
+  // --- SIMULATION ---
   function simulate(input, options = {}) {
     const { budget = null, detailed = true, stopAtTarget = false } = options;
     const reverse = budget !== null;
@@ -493,20 +552,18 @@ tbody tr:last-child > * { border-bottom: 0; }
     }
 
     const size = GRADES.length;
-    const remaining = reverse ? null : input.settings.map((setting) => setting.itemCount);
-    const plannedItems = reverse ? budget : remaining.reduce((sum, count) => sum + count, 0);
+    const remaining = reverse ? null : input.settings.map(s => s.itemCount);
+    const plannedItems = reverse ? budget : remaining.reduce((sum, c) => sum + c, 0);
 
-    const data = detailed
-      ? {
-        reachedTimes: Array(size).fill(null),
-        itemsByGrade: Array(size).fill(0),
-        itemTimes: Array(size).fill(null),
-        carriedInByGrade: Array(size).fill(0),
-        carriedOutByGrade: Array(size).fill(0),
-        logs: [],
-        omittedLogs: 0
-      }
-      : null;
+    const data = detailed ? {
+      reachedTimes: Array(size).fill(null),
+      itemsByGrade: Array(size).fill(0),
+      itemTimes: Array(size).fill(null),
+      carriedInByGrade: Array(size).fill(0),
+      carriedOutByGrade: Array(size).fill(0),
+      logs: [],
+      omittedLogs: 0
+    } : null;
 
     let time = input.startTime;
     let gradeIndex = input.startGrade;
@@ -549,15 +606,12 @@ tbody tr:last-child > * { border-bottom: 0; }
       const available = reverse ? budget - totalItems : remaining[gradeIndex];
       const capacity = Math.floor((STAMINA_CAP - 1 - stamina) / STAMINA_PER_ITEM);
       const count = Math.max(0, Math.min(requested, available, capacity));
-
       if (count === 0) return 0;
 
       const before = stamina;
       const recovered = count * STAMINA_PER_ITEM;
-
       stamina += recovered;
       totalItems += count;
-
       if (!reverse) remaining[gradeIndex] -= count;
 
       if (!Number.isSafeInteger(count) || before >= ITEM_THRESHOLD || stamina >= STAMINA_CAP) {
@@ -567,12 +621,8 @@ tbody tr:last-child > * { border-bottom: 0; }
       if (data) {
         data.itemsByGrade[gradeIndex] += count;
         if (data.itemTimes[gradeIndex] === null) data.itemTimes[gradeIndex] = time;
-        log(
-          `${GRADES[gradeIndex].name}でアイテム${formatNumber(count)}個を使用` +
-          `（体力＋${formatNumber(recovered)}：${before}→${stamina}）`
-        );
+        log(`${GRADES[gradeIndex].name}でアイテム${formatNumber(count)}個を使用（体力＋${formatNumber(recovered)}：${before}→${stamina}）`);
       }
-
       return count;
     }
 
@@ -580,16 +630,13 @@ tbody tr:last-child > * { border-bottom: 0; }
       if (!Number.isSafeInteger(count) || count < 1 || count > stamina) {
         throw new Error("体力消費数が不正です。");
       }
-
       const wasFull = stamina === STAMINA_CAP;
       const grade = GRADES[gradeIndex];
       const gained = count * grade.speed * EXP_MULTIPLIER * EXP_SCALE;
 
       stamina -= count;
       exp += gained;
-
       if (wasFull) nextRecovery = time + STAMINA_INTERVAL;
-
       if (data) log(`${grade.name}で体力${count}を消費（博識＋${formatNumber(gained / EXP_SCALE)}）`);
     }
 
@@ -610,7 +657,6 @@ tbody tr:last-child > * { border-bottom: 0; }
         data.reachedTimes[gradeIndex] = time;
         data.carriedOutByGrade[previous] = carried;
         data.carriedInByGrade[gradeIndex] = carried;
-
         let message = `${GRADES[gradeIndex].name}へ昇級`;
         if (carried > 0) message += `（未使用アイテム${formatNumber(carried)}個を引継ぎ）`;
         log(message);
@@ -622,7 +668,6 @@ tbody tr:last-child > * { border-bottom: 0; }
 
       while (gradeIndex < LAST_GRADE) {
         guard();
-
         if (stopAtTarget && reverse && gradeIndex >= input.goalGrade) return;
 
         const grade = GRADES[gradeIndex];
@@ -647,7 +692,6 @@ tbody tr:last-child > * { border-bottom: 0; }
           const requested = Math.min(Math.ceil(neededStamina / STAMINA_PER_ITEM), budget - totalItems);
           if (useItems(requested) > 0) continue;
         }
-
         return;
       }
     }
@@ -663,24 +707,14 @@ tbody tr:last-child > * { border-bottom: 0; }
         boundaryIndex += 1;
       }
 
-      const nextTime = Math.min(
-        nextNatural,
-        nextRecovery,
-        input.boundaries[boundaryIndex] ?? Infinity,
-        input.endTime
-      );
-
-      if (!Number.isSafeInteger(nextTime) || nextTime <= time) {
-        throw new Error("次のイベント時刻が不正です。");
-      }
+      const nextTime = Math.min(nextNatural, nextRecovery, input.boundaries[boundaryIndex] ?? Infinity, input.endTime);
+      if (!Number.isSafeInteger(nextTime) || nextTime <= time) throw new Error("次のイベント時刻が不正です。");
 
       time = nextTime;
 
       if (time === nextNatural) {
         const buffIndex = Math.min(input.buffs.length - 1, Math.floor(time / 3600));
-        exp += Math.round(
-          (GRADES[gradeIndex].speed * (BUFF_BASE + input.buffs[buffIndex]) * EXP_SCALE) / BUFF_BASE
-        );
+        exp += Math.round((GRADES[gradeIndex].speed * (BUFF_BASE + input.buffs[buffIndex]) * EXP_SCALE) / BUFF_BASE);
         nextNatural += NATURAL_INTERVAL;
       }
 
@@ -699,22 +733,17 @@ tbody tr:last-child > * { border-bottom: 0; }
     }
 
     const targetReached = reverse && gradeIndex >= input.goalGrade;
-
     if (!data) return { targetReached };
 
     const unusedItems = plannedItems - totalItems;
-    const usedTotal = data.itemsByGrade.reduce((sum, count) => sum + count, 0);
-
+    const usedTotal = data.itemsByGrade.reduce((sum, c) => sum + c, 0);
     if (usedTotal !== totalItems) throw new Error("使用アイテム数の整合性が失われました。");
 
     if (!reverse) {
-      const remainingTotal = remaining.reduce((sum, count) => sum + count, 0);
-      const unreachedPlanned = input.settings
-        .slice(gradeIndex + 1)
-        .reduce((sum, setting) => sum + setting.itemCount, 0);
-
+      const remainingTotal = remaining.reduce((sum, c) => sum + c, 0);
+      const unreachedPlanned = input.settings.slice(gradeIndex + 1).reduce((sum, s) => sum + s.itemCount, 0);
       if (
-        remaining.some((count) => count < 0) ||
+        remaining.some(c => c < 0) ||
         remainingTotal !== unusedItems ||
         remaining[gradeIndex] + unreachedPlanned !== unusedItems
       ) {
@@ -750,15 +779,13 @@ tbody tr:last-child > * { border-bottom: 0; }
   }
 
   function yieldToBrowser() {
-    return new Promise((resolve) => { setTimeout(resolve, 0); });
+    return new Promise(resolve => setTimeout(resolve, 0));
   }
 
+  // --- REVERSE SOLVER ---
   async function solveRequiredItems(input, ticket) {
     const baseline = simulate(input, { budget: 0 });
-
-    if (baseline.targetReached) {
-      return { result: baseline, reverse: { possible: true } };
-    }
+    if (baseline.targetReached) return { result: baseline, reverse: { possible: true } };
 
     if (firstOnlineTime(input) === null) {
       return {
@@ -786,10 +813,7 @@ tbody tr:last-child > * { border-bottom: 0; }
     if (!reachable) {
       return {
         result: baseline,
-        reverse: {
-          possible: false,
-          message: `探索上限${formatNumber(MAX_ITEMS)}個でも、即時補充方式では目標日時までに到達しません。`
-        }
+        reverse: { possible: false, message: `探索上限${formatNumber(MAX_ITEMS)}個でも、即時補充方式では目標日時までに到達しません。` }
       };
     }
 
@@ -803,14 +827,13 @@ tbody tr:last-child > * { border-bottom: 0; }
     }
 
     const solved = simulate(input, { budget: high });
-
     if (!solved.targetReached || solved.totalItems !== high) {
       throw new Error("逆算結果の到達・使用個数の検算に失敗しました。");
     }
-
     return { result: solved, reverse: { possible: true } };
   }
 
+  // --- DOM HELPERS ---
   function element(tag, text = null, className = "") {
     const node = document.createElement(tag);
     if (text !== null) node.textContent = String(text);
@@ -827,11 +850,7 @@ tbody tr:last-child > * { border-bottom: 0; }
 
   function control(object, key, attributes = {}, options = null) {
     const node = element(options ? "select" : "input");
-
-    for (const [name, value] of Object.entries(attributes)) {
-      node.setAttribute(name, String(value));
-    }
-
+    for (const [name, value] of Object.entries(attributes)) node.setAttribute(name, String(value));
     if (options) {
       for (const [value, text] of options) {
         const option = element("option", text);
@@ -839,7 +858,6 @@ tbody tr:last-child > * { border-bottom: 0; }
         node.append(option);
       }
     }
-
     node.value = String(object[key]);
     bindings.set(node, { object, key });
     return node;
@@ -879,16 +897,13 @@ tbody tr:last-child > * { border-bottom: 0; }
     return node;
   }
 
+  // --- SETTINGS PANEL ---
   function buildSettings() {
     const root = $("settings-content");
     root.replaceChildren();
 
     const modeSection = section("1. 計算モード");
-
-    modeSection.append(labelled("計算方法", control(config, "calculationMode", {}, [
-      ["forward", "到達時刻を予測"],
-      ["reverse", "必要個数を逆算"]
-    ])));
+    modeSection.append(labelled("計算方法", control(config, "calculationMode", {}, [["forward", "到達時刻を予測"], ["reverse", "必要個数を逆算"]])));
 
     ui.goal = element("div", null, "fields");
     ui.goal.append(
@@ -898,11 +913,7 @@ tbody tr:last-child > * { border-bottom: 0; }
     modeSection.append(ui.goal);
 
     const startSection = section("2. 開始状態");
-
-    startSection.append(labelled("開始方法", control(config, "startMode", {}, [
-      ["new", "新規スタート"],
-      ["resume", "途中から再開"]
-    ])));
+    startSection.append(labelled("開始方法", control(config, "startMode", {}, [["new", "新規スタート"], ["resume", "途中から再開"]])));
 
     const resumeDate = dateField(config.resume, "day", "time", "再開日時", { nowAction: "resume-now" });
     ui.resumeTime = resumeDate.timeInput;
@@ -916,23 +927,19 @@ tbody tr:last-child > * { border-bottom: 0; }
     );
 
     ui.recovery = element("fieldset");
-
     const recoveryGrid = element("div", null, "grid");
     recoveryGrid.append(
       labelled("分", numberControl(config.resume, "recoveryMinutes", 0, 15)),
       labelled("秒", numberControl(config.resume, "recoverySeconds", 0, 59))
     );
-
     ui.recovery.append(element("legend", "次の体力回復までの残り時間", "field-label"), recoveryGrid);
     ui.resume.append(ui.recovery);
     startSection.append(ui.resume);
 
     const offlineSection = element("section", null, "panel");
     const offlineHeading = element("div", null, "heading");
-
     ui.addOffline = actionButton("＋追加", "add-offline");
     ui.offline = element("div");
-
     offlineHeading.append(element("h2", "3. オフライン期間"), ui.addOffline);
     offlineSection.append(offlineHeading, ui.offline);
 
@@ -953,7 +960,6 @@ tbody tr:last-child > * { border-bottom: 0; }
       buffGrid.append(labelled(hourLabel(index) + (index === 0 ? " 固定" : ""), select));
       return select;
     });
-
     buffSection.append(presets, buffGrid);
 
     const resetSection = element("section", null, "panel");
@@ -971,7 +977,6 @@ tbody tr:last-child > * { border-bottom: 0; }
       const panel = element("div", null, "offline-period fields");
       const heading = element("div", null, "heading");
       const remove = actionButton("削除", "remove-offline", "danger");
-
       remove.dataset.id = String(period.id);
       remove.setAttribute("aria-label", `オフライン期間${index + 1}を削除`);
 
@@ -981,36 +986,33 @@ tbody tr:last-child > * { border-bottom: 0; }
         dateField(period, "startDay", "startTime", `期間${index + 1}の開始`),
         dateField(period, "endDay", "endTime", `期間${index + 1}の終了`)
       );
-
       ui.offline.append(panel);
     });
   }
 
+  // --- GRADE TABLE ---
   function buildRows() {
     const body = $("grade-rows");
     const fragment = document.createDocumentFragment();
-
     rowNodes.length = 0;
 
     for (const grade of GRADES) {
       const setting = config.settings[grade.id];
       const row = element("tr");
 
+      // 階級セル
       const heading = element("th", null, "grade-cell");
       heading.scope = "row";
-
       const gradeName = element("span", null, "grade-name");
-
       grade.name.split("/").forEach((name, index) => {
         if (index > 0) gradeName.append(element("span", "/", "grade-separator"));
         gradeName.append(element("span", name, "grade-part"));
       });
-
       const target = element("span", "目標階級", "sub");
       target.hidden = true;
-
       heading.append(gradeName, target);
 
+      // 基礎データセル
       const speedCell = element("td", null, "basic-cell");
       speedCell.id = `grade-basic-${grade.id}`;
       speedCell.append(
@@ -1019,52 +1021,46 @@ tbody tr:last-child > * { border-bottom: 0; }
         element("span", grade.id === LAST_GRADE ? "次の必要量：計算対象外" : `次の必要量：${formatNumber(grade.req)}`, "sub")
       );
 
+      // 到達時刻セル
       const timeCell = element("td", null, "arrival-cell");
       const arrivalLayout = element("div", null, "arrival-layout");
       const arrivalInfo = element("div", null, "arrival-info");
       const arrival = element("span", "—", "arrival");
       const duration = element("span", "—", "sub");
-
       arrivalInfo.append(element("span", "到達時刻", "cell-title"), arrival, duration);
 
       const detailsButton = actionButton("", "toggle-row-details", "row-details-toggle");
-
       detailsButton.dataset.grade = String(grade.id);
       detailsButton.setAttribute("aria-expanded", "false");
       detailsButton.setAttribute("aria-controls", `grade-basic-${grade.id} grade-items-${grade.id}`);
       detailsButton.setAttribute("aria-label", `${grade.name}の詳細：基礎データとアイテム設定`);
-
       const detailsIcon = element("span", "▾", "row-details-icon");
       detailsIcon.setAttribute("aria-hidden", "true");
-
       detailsButton.append(element("span", "詳細"), detailsIcon);
+
       arrivalLayout.append(arrivalInfo, detailsButton);
       timeCell.append(arrivalLayout);
 
+      // アイテムセル
       const itemCell = element("td", null, "item-cell");
       itemCell.id = `grade-items-${grade.id}`;
-
       const editor = element("div");
       const stepper = element("div", null, "stepper");
       const input = numberControl(setting, "itemCount", 0, MAX_ITEMS);
-
       input.id = `items-${grade.id}`;
       input.setAttribute("aria-label", `${grade.name}で追加するアイテム数`);
 
       for (const [delta, text] of [[-1, "−"], [1, "＋"]]) {
         const button = actionButton(text, "adjust-items");
-
         button.dataset.grade = String(grade.id);
         button.dataset.delta = String(delta);
         button.setAttribute("aria-label", `${grade.name}の追加アイテムを1個` + (delta < 0 ? "減らす" : "増やす"));
-
         if (delta < 0) {
           stepper.append(button, input);
         } else {
           stepper.append(button);
         }
       }
-
       editor.append(stepper);
 
       const itemSummary = element("span", "", "item-summary");
@@ -1072,18 +1068,11 @@ tbody tr:last-child > * { border-bottom: 0; }
       const reverseCount = element("strong", "—");
       const firstUse = element("span", "", "sub");
 
-      itemCell.append(
-        element("span", "アイテム設定 / 使用・引継ぎ", "cell-title"),
-        editor, itemSummary, inactive, reverseCount, firstUse
-      );
+      itemCell.append(element("span", "アイテム設定 / 使用・引継ぎ", "cell-title"), editor, itemSummary, inactive, reverseCount, firstUse);
 
       row.append(heading, speedCell, timeCell, itemCell);
       fragment.append(row);
-
-      rowNodes.push({
-        row, target, arrival, duration, detailsButton, editor,
-        input, inactive, reverseCount, firstUse, itemSummary
-      });
+      rowNodes.push({ row, target, arrival, duration, detailsButton, editor, input, inactive, reverseCount, firstUse, itemSummary });
     }
 
     body.replaceChildren(fragment);
@@ -1102,7 +1091,6 @@ tbody tr:last-child > * { border-bottom: 0; }
     ui.goal.hidden = !reverse;
     ui.resume.hidden = config.startMode !== "resume";
     ui.recovery.hidden = Number(config.resume.stamina) >= STAMINA_CAP;
-
     $("result-title").textContent = reverse ? "必要アイテム数の逆算" : "シミュレーション結果";
 
     rowNodes.forEach((nodes, index) => {
@@ -1124,7 +1112,6 @@ tbody tr:last-child > * { border-bottom: 0; }
     const box = $("errors");
     box.replaceChildren();
     box.hidden = messages.length === 0;
-
     if (messages.length === 0) return;
 
     const list = element("ul");
@@ -1132,6 +1119,7 @@ tbody tr:last-child > * { border-bottom: 0; }
     box.append(element("strong", "入力・計算内容を確認してください"), list);
   }
 
+  // --- RESULTS ---
   function renderResults() {
     const reverse = config.calculationMode === "reverse";
     const failed = Boolean(reverseResult && !reverseResult.possible);
@@ -1152,14 +1140,11 @@ tbody tr:last-child > * { border-bottom: 0; }
       const unchangedResume = result.startMode === "resume" && result.finalGrade === result.startGrade;
 
       $("final-grade").textContent = GRADES[result.finalGrade].name;
-      $("final-arrival").textContent = unchangedResume
-        ? "到達日時：再開時点で到達済み"
-        : `到達日時：${formatTime(result.finalReachedAt)}`;
+      $("final-arrival").textContent = unchangedResume ? "到達日時：再開時点で到達済み" : `到達日時：${formatTime(result.finalReachedAt)}`;
       $("total-items").textContent = failed ? "算出不可" : `${formatNumber(result.totalItems)}個`;
 
       if (result.mode === "forward") {
-        $("items-detail").textContent =
-          `設定合計：${formatNumber(result.plannedItems)}個 ／ 未使用：${formatNumber(result.unusedItems)}個`;
+        $("items-detail").textContent = `設定合計：${formatNumber(result.plannedItems)}個 ／ 未使用：${formatNumber(result.unusedItems)}個`;
       } else {
         $("items-detail").textContent = failed
           ? "表はアイテム0個での参考計算です"
@@ -1193,25 +1178,19 @@ tbody tr:last-child > * { border-bottom: 0; }
       } else {
         const duration = reachedAt - result.reachedTimes[index - 1];
         const fromResume = result.startMode === "resume" && index === result.startGrade + 1;
-
         nodes.arrival.textContent = formatTime(reachedAt);
-        nodes.duration.textContent =
-          (fromResume ? "再開から " : "前階級から ") + formatDuration(duration) + (duration === 0 ? "（同時）" : "");
+        nodes.duration.textContent = (fromResume ? "再開から " : "前階級から ") + formatDuration(duration) + (duration === 0 ? "（同時）" : "");
       }
 
       if (result.mode === "reverse") {
         nodes.reverseCount.textContent = `${formatNumber(result.itemsByGrade[index])}個`;
-        if (result.itemTimes[index] !== null) {
-          nodes.firstUse.textContent = `初回：${formatTime(result.itemTimes[index])}`;
-        }
+        if (result.itemTimes[index] !== null) nodes.firstUse.textContent = `初回：${formatTime(result.itemTimes[index])}`;
       } else if (reachedAt !== null) {
         const cIn = result.carriedInByGrade[index];
         const used = result.itemsByGrade[index];
         const cOut = index < result.finalGrade ? result.carriedOutByGrade[index] : result.remainingItemsByGrade[index];
         const outLabel = index < result.finalGrade ? "次へ" : "残";
-
-        nodes.itemSummary.textContent =
-          `実使用 ${formatNumber(used)}個 (引継 ${formatNumber(cIn)} → ${outLabel} ${formatNumber(cOut)})`;
+        nodes.itemSummary.textContent = `実使用 ${formatNumber(used)}個 (引継 ${formatNumber(cIn)} → ${outLabel} ${formatNumber(cOut)})`;
       }
     });
 
@@ -1225,14 +1204,12 @@ tbody tr:last-child > * { border-bottom: 0; }
         `操作ログ（保存${formatNumber(result.logs.length)}件` +
         (result.omittedLogs > 0 ? `・上限超過${formatNumber(result.omittedLogs)}件省略` : "") +
         "）";
-
       if ($("log-details").open) appendLogs();
     }
   }
 
   function appendLogs() {
     if (!result) return;
-
     const list = $("event-log");
 
     if (result.logs.length === 0 && shownLogs === 0) {
@@ -1247,13 +1224,11 @@ tbody tr:last-child > * { border-bottom: 0; }
     for (let index = shownLogs; index < end; index += 1) {
       const entry = result.logs[index];
       const item = element("li");
-
       item.append(
         element("time", formatTime(entry.time)),
         element("div", entry.message),
         element("small", `残り体力：${formatNumber(entry.stamina)} ／ 残り博識：${formatNumber(entry.exp)}`, "sub")
       );
-
       fragment.append(item);
     }
 
@@ -1262,14 +1237,13 @@ tbody tr:last-child > * { border-bottom: 0; }
     $("more-logs").hidden = shownLogs >= result.logs.length;
   }
 
+  // --- CALCULATION FLOW ---
   function invalidate(delay = 150) {
     revision += 1;
-
     if (timer !== null) clearTimeout(timer);
 
     result = null;
     reverseResult = null;
-
     showErrors([]);
     updateVisibility();
     renderResults();
@@ -1278,18 +1252,16 @@ tbody tr:last-child > * { border-bottom: 0; }
     $("results").setAttribute("aria-busy", "true");
 
     const ticket = revision;
-    timer = setTimeout(() => { calculate(ticket); }, delay);
+    timer = setTimeout(() => calculate(ticket), delay);
   }
 
   async function calculate(ticket) {
     if (ticket !== revision) return;
-
     timer = null;
     $("status").textContent = "計算中…";
 
     try {
       const validation = validateConfig(config);
-
       if (!validation.input) {
         showErrors(validation.errors);
         $("status").textContent = "入力エラーがあります";
@@ -1297,7 +1269,6 @@ tbody tr:last-child > * { border-bottom: 0; }
       }
 
       await yieldToBrowser();
-
       if (ticket !== revision) return;
 
       const input = validation.input;
@@ -1316,7 +1287,6 @@ tbody tr:last-child > * { border-bottom: 0; }
 
       result = calculated;
       reverseResult = reversed;
-
       renderResults();
 
       $("status").textContent = (reverseResult && !reverseResult.possible)
@@ -1324,15 +1294,11 @@ tbody tr:last-child > * { border-bottom: 0; }
         : "計算完了";
     } catch (error) {
       if (error === CANCELLED || ticket !== revision) return;
-
       console.error(error);
-
       result = null;
       reverseResult = null;
-
       renderResults();
       showErrors(["計算の安全チェックに失敗しました。入力を確認するか、設定を初期化してください。"]);
-
       $("status").textContent = "計算を中止しました";
     } finally {
       if (ticket === revision) $("results").setAttribute("aria-busy", "false");
@@ -1346,13 +1312,12 @@ tbody tr:last-child > * { border-bottom: 0; }
     nodes.detailsButton.setAttribute("aria-expanded", String(open));
   }
 
+  // --- EVENTS ---
   function handleInput(event) {
     const binding = bindings.get(event.target);
     if (!binding) return;
-
     const value = event.target.value;
     if (binding.object[binding.key] === value) return;
-
     binding.object[binding.key] = value;
     invalidate();
   }
@@ -1362,19 +1327,15 @@ tbody tr:last-child > * { border-bottom: 0; }
 
   $("app").addEventListener("click", (event) => {
     if (!(event.target instanceof Element)) return;
-
     const button = event.target.closest("button[data-action]");
-
     if (!button || button.disabled) return;
 
     switch (button.dataset.action) {
       case "toggle-row-details": {
         const index = Number(button.dataset.grade);
         if (!Number.isInteger(index) || index < 0 || index > LAST_GRADE) return;
-
         const nodes = rowNodes[index];
         if (!nodes) return;
-
         setRowDetailsOpen(index, !nodes.row.classList.contains("is-expanded"));
         break;
       }
@@ -1382,7 +1343,6 @@ tbody tr:last-child > * { border-bottom: 0; }
       case "resume-now": {
         const now = new Date();
         const value = `${pad2(now.getHours())}:${pad2(now.getMinutes())}:${pad2(now.getSeconds())}`;
-
         config.resume.time = value;
         ui.resumeTime.value = value;
         invalidate();
@@ -1400,12 +1360,10 @@ tbody tr:last-child > * { border-bottom: 0; }
       case "preset": {
         const value = Number(button.dataset.value);
         if (!BUFF_OPTIONS.includes(value)) return;
-
         for (let index = 1; index < TOTAL_HOURS; index += 1) {
           config.buffs[index] = value;
           ui.buffControls[index].value = String(value);
         }
-
         config.buffs[0] = 3;
         ui.buffControls[0].value = "3";
         invalidate();
@@ -1414,23 +1372,14 @@ tbody tr:last-child > * { border-bottom: 0; }
 
       case "add-offline":
         if (config.offlinePeriods.length >= MAX_OFFLINE_PERIODS) return;
-
-        config.offlinePeriods.push({
-          id: nextOfflineId++,
-          startDay: 1,
-          startTime: "23:00:00",
-          endDay: 2,
-          endTime: "07:00:00"
-        });
-
+        config.offlinePeriods.push({ id: nextOfflineId++, startDay: 1, startTime: "23:00:00", endDay: 2, endTime: "07:00:00" });
         renderOfflinePeriods();
         invalidate();
         break;
 
       case "remove-offline": {
         const id = Number(button.dataset.id);
-        const index = config.offlinePeriods.findIndex((period) => period.id === id);
-
+        const index = config.offlinePeriods.findIndex(p => p.id === id);
         if (index !== -1) {
           config.offlinePeriods.splice(index, 1);
           renderOfflinePeriods();
@@ -1442,18 +1391,14 @@ tbody tr:last-child > * { border-bottom: 0; }
       case "adjust-items": {
         const index = Number(button.dataset.grade);
         const delta = Number(button.dataset.delta);
-
         if (
           !Number.isInteger(index) || index < startingGrade() || index >= LAST_GRADE ||
           ![-1, 1].includes(delta) || config.calculationMode !== "forward"
-        ) {
-          return;
-        }
+        ) return;
 
         const raw = Number(config.settings[index].itemCount);
         const current = Number.isFinite(raw) ? Math.trunc(raw) : 0;
         const count = Math.max(0, Math.min(MAX_ITEMS, current + delta));
-
         config.settings[index].itemCount = count;
         rowNodes[index].input.value = String(count);
         invalidate();
@@ -1462,10 +1407,8 @@ tbody tr:last-child > * { border-bottom: 0; }
 
       case "reset":
         if (!window.confirm("すべての設定を初期状態に戻しますか？")) return;
-
         config = createDefaultConfig();
         nextOfflineId = 1;
-
         buildSettings();
         buildRows();
         invalidate(0);
@@ -1477,19 +1420,16 @@ tbody tr:last-child > * { border-bottom: 0; }
     if ($("log-details").open && result && shownLogs === 0) appendLogs();
   });
 
+  // --- INIT ---
   try {
     buildSettings();
     buildRows();
-
     $("app").hidden = false;
     $("boot-status").remove();
-
     invalidate(0);
   } catch (error) {
     console.error(error);
-
     const boot = $("boot-status");
-
     if (boot) boot.textContent = "アプリを起動できませんでした。対応するブラウザーで開き直してください。";
   }
 })();
