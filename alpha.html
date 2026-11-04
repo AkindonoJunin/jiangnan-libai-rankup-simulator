@@ -1096,7 +1096,9 @@
     rowNodes.forEach((nodes, index) => {
       const applicable = index >= start && index < LAST_GRADE;
       const target = reverse && index === Number(config.goal.gradeIndex);
+      const beforeResume = index < start;
 
+      nodes.row.hidden = !reverse && beforeResume;
       nodes.row.classList.toggle("target-row", target);
       nodes.target.hidden = !target;
       nodes.editor.hidden = reverse || !applicable;
@@ -1104,7 +1106,7 @@
       nodes.reverseCount.hidden = !reverse;
       nodes.firstUse.hidden = !reverse;
       nodes.itemSummary.hidden = reverse;
-      nodes.inactive.textContent = index === LAST_GRADE ? "計算対象上限では使用しません" : "再開前の階級は設定対象外";
+      nodes.inactive.textContent = index === LAST_GRADE ? "計算対象上限では使用しません" : "";
     });
   }
 
