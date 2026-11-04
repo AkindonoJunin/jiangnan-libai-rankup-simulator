@@ -1098,7 +1098,7 @@
       const target = reverse && index === Number(config.goal.gradeIndex);
       const beforeResume = index < start;
 
-      nodes.row.hidden = !reverse && beforeResume;
+      nodes.row.hidden = beforeResume;
       nodes.row.classList.toggle("target-row", target);
       nodes.target.hidden = !target;
       nodes.editor.hidden = reverse || !applicable;
